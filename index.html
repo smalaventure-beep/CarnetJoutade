@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carnet de La Joutade</title>
+<meta name="theme-color" content="#2d5631">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="leaflet.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root {
+  --bg: #eceee6; --surface: #f8f9f4; --ink: #1d261c; --muted: #5b6658; --line: #d2d8cb;
+  --accent: #2d5631; --accent-ink: #f4f7ef; --soft: #dfe6d6; --danger: #a23a2a; --gps: #1f6fd1;
+  --shadow: 0 8px 28px rgba(20,30,18,.22);
+  --f-display: "IM Fell English", Georgia, serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #131712; --surface: #1c2119; --ink: #e5eadd; --muted: #9aa592; --line: #313a2d;
+  --accent: #9fc98c; --accent-ink: #13200f; --soft: #263022; --danger: #e38a78; --gps: #6aa8ff;
+  --shadow: 0 8px 28px rgba(0,0,0,.55); color-scheme: dark } }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-body); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#map { position: fixed; inset: 0; background: #33402f; }
+.leaflet-control-attribution { font-size: 10px; }
+.leaflet-bottom { bottom: calc(env(safe-area-inset-bottom,0px) + 70px); }
+
+/* top bar */
+.topbar { position: fixed; z-index: 500; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top,0px) + 10px) 12px 0; display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
+.topbar > * { pointer-events: auto; }
+.title { background: var(--surface); border-radius: 12px; padding: 7px 12px; box-shadow: var(--shadow); min-width: 0; flex: 1; }
+.title h1 { font: 400 1.25rem/1.1 var(--f-display); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title .stats { font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.round { width: 46px; height: 46px; border-radius: 12px; border: 0; background: var(--surface); box-shadow: var(--shadow); display: grid; place-items: center; flex: none; }
+.round svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.round.on svg { stroke: var(--gps); }
+
+.side { position: fixed; z-index: 500; right: 12px; top: calc(env(safe-area-inset-top,0px) + 66px); display: flex; flex-direction: column; gap: 8px; }
+
+/* bottom bar */
+.bottombar { position: fixed; z-index: 500; left: 0; right: 0; bottom: 0; padding: 0 12px calc(env(safe-area-inset-bottom,0px) + 12px); display: flex; gap: 8px; pointer-events: none; }
+.bottombar > * { pointer-events: auto; }
+.primary { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 14px; padding: 14px 16px; font-weight: 700; box-shadow: var(--shadow); }
+.secondary { background: var(--surface); border: 0; border-radius: 14px; padding: 14px 14px; font-weight: 700; box-shadow: var(--shadow); }
+.bottombar .primary { flex: 1; font-size: 1rem; }
+.ghost { background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; }
+.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+
+/* GPS readout chip */
+.gpschip { position: fixed; z-index: 500; left: 12px; top: calc(env(safe-area-inset-top,0px) + 70px); background: var(--surface); border-radius: 10px; padding: 5px 9px; box-shadow: var(--shadow); font: 500 .74rem var(--f-mono); color: var(--muted); }
+.gpschip b { color: var(--ink); }
+
+/* markers */
+.pm { width: 20px; height: 20px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.55); }
+.pm.dead { opacity: .55; }
+.pm.sel { outline: 3px solid #ffd54a; outline-offset: 2px; }
+.leaflet-tooltip.lbl { background: rgba(20,26,18,.78); color: #fff; border: 0; box-shadow: none; font: 700 11px var(--f-body); padding: 1px 6px; border-radius: 5px; }
+.leaflet-tooltip.lbl::before { display: none; }
+.hide-labels .leaflet-tooltip.lbl { display: none; }
+
+/* sheets */
+.backdrop { position: fixed; inset: 0; z-index: 900; background: rgba(10,14,9,.42); }
+.sheet { position: fixed; z-index: 901; left: 0; right: 0; bottom: 0; max-height: 92dvh; overflow: auto; background: var(--surface); border-radius: 18px 18px 0 0; box-shadow: var(--shadow); padding: 8px 16px calc(env(safe-area-inset-bottom,0px) + 18px); max-width: 640px; margin: 0 auto; }
+.grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 4px auto 10px; }
+.sheet h2 { font: 400 1.5rem var(--f-display); margin: 0 0 12px; }
+.form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form .full { grid-column: 1 / -1; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; font-weight: 700; color: var(--muted); min-width: 0; }
+.field { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 9px 11px; width: 100%; color: var(--ink); font-weight: 400; font-size: .95rem; }
+#f-latin { font-family: var(--f-display); font-style: italic; font-size: 1.05rem; }
+.mono { font-family: var(--f-mono) !important; font-size: .85rem !important; }
+@media (max-width: 420px) { .form { grid-template-columns: 1fr; } }
+.box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+.small { font-size: .8rem; color: var(--muted); }
+.photo-prev { width: 100%; max-height: 240px; object-fit: cover; border-radius: 10px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.actions .primary { flex: 1; box-shadow: none; padding: 12px; }
+
+/* precise capture */
+.capture { text-align: center; }
+.acc { font: 500 2.4rem var(--f-mono); font-variant-numeric: tabular-nums; margin: 6px 0 0; }
+.accbar { height: 8px; border-radius: 8px; background: var(--soft); overflow: hidden; margin: 10px 0 4px; }
+.accbar div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.verdict { font-weight: 700; }
+
+/* catalogue */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.filters input { flex: 1 1 160px; min-width: 0; }
+.filters select { width: auto; }
+.list { display: flex; flex-direction: column; gap: 8px; }
+.tag { display: grid; grid-template-columns: 8px 1fr auto; gap: 0 12px; text-align: left; width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 4px 12px 12px 4px; padding: 0; overflow: hidden; }
+.tag .notch { background: var(--c); }
+.tag .body { padding: 10px 0; min-width: 0; }
+.tag .name { font-weight: 700; }
+.tag .latin { font-family: var(--f-display); font-style: italic; font-size: 1.02rem; color: var(--muted); }
+.tag .meta { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.tag .dist { font: 500 .74rem var(--f-mono); color: var(--muted); margin-top: 3px; }
+.tag .side2 { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; padding: 10px 12px 10px 0; gap: 6px; }
+.tag img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; }
+.state { font-size: .7rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; border: 1px solid currentColor; }
+.state.ok { color: var(--accent); } .state.surv { color: #b07a12; } .state.malade { color: var(--danger); } .state.mort { color: var(--muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 10px 5px 8px; font-size: .8rem; }
+.chip i { width: 10px; height: 10px; border-radius: 50%; }
+.chip[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+.nores { color: var(--muted); text-align: center; padding: 24px 10px; }
+
+/* finder banner */
+.finder { position: fixed; z-index: 600; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom,0px) + 76px); background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 12px; display: flex; gap: 10px; align-items: center; box-shadow: var(--shadow); }
+.finder .arrow { width: 40px; height: 40px; flex: none; transition: transform .3s; }
+.finder .arrow svg { width: 40px; height: 40px; fill: var(--bg); }
+.finder .txt { flex: 1; min-width: 0; }
+.finder .big { font: 500 1.15rem var(--f-mono); }
+.finder button { background: transparent; color: var(--bg); border: 1px solid currentColor; border-radius: 9px; padding: 6px 10px; }
+.placebar { position: fixed; z-index: 600; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top,0px) + 12px) 16px 12px; background: var(--ink); color: var(--bg); display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.placebar button { background: transparent; color: var(--bg); border: 1px solid currentColor; border-radius: 9px; padding: 7px 11px; }
+.crosshair { position: fixed; z-index: 550; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: none; }
+.crosshair::before, .crosshair::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
+.crosshair::before { left: 21px; top: 0; width: 2px; height: 44px; }
+.crosshair::after { top: 21px; left: 0; height: 2px; width: 44px; }
+.toast { position: fixed; z-index: 1000; left: 50%; top: calc(env(safe-area-inset-top,0px) + 70px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: .88rem; max-width: calc(100% - 32px); }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: up .22s ease-out; } @keyframes up { from { transform: translateY(30px); opacity: .6 } } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="topbar">
+  <div class="title"><h1>Carnet de La Joutade</h1><div class="stats" id="stats">…</div></div>
+  <button class="round" id="btn-menu" aria-label="Réglages et sauvegarde"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+</div>
+<div class="side">
+  <button class="round" id="btn-locate" aria-label="Me suivre sur la carte"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+  <button class="round" id="btn-layer" aria-label="Changer de fond de carte"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg></button>
+  <button class="round" id="btn-labels" aria-label="Afficher ou masquer les noms"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>
+  <button class="round" id="btn-home" aria-label="Recentrer sur le terrain"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg></button>
+</div>
+<div class="gpschip" id="gpschip" hidden></div>
+
+<div class="bottombar">
+  <button class="secondary" id="btn-list">Catalogue</button>
+  <button class="primary" id="btn-add">+ Au pied d'une plante</button>
+</div>
+
+<div class="finder" id="finder" hidden>
+  <div class="arrow" id="f-arrow"><svg viewBox="0 0 40 40"><path d="M20 3l11 30-11-7-11 7z"/></svg></div>
+  <div class="txt"><div class="big" id="f-big">–</div><div class="small" id="f-name" style="color:inherit;opacity:.8"></div></div>
+  <button id="f-close">Fermer</button>
+</div>
+
+<div class="placebar" id="placebar" hidden><span>Déplacez la carte sous la croix</span><span class="row"><button id="place-ok">Valider</button><button id="place-cancel">Annuler</button></span></div>
+<div class="crosshair" id="crosshair" hidden></div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+
+<!-- Precise GPS capture -->
+<div class="sheet capture" id="sheet-capture" hidden role="dialog" aria-labelledby="cap-title">
+  <div class="grab"></div>
+  <h2 id="cap-title">Position au pied de la plante</h2>
+  <div class="small">Restez immobile, téléphone à plat au-dessus du pied. La position s'affine en faisant la moyenne des mesures.</div>
+  <div class="acc" id="cap-acc">± – m</div>
+  <div class="accbar"><div id="cap-bar"></div></div>
+  <div class="verdict" id="cap-verdict">Recherche du signal GPS…</div>
+  <div class="small" id="cap-n"></div>
+  <div class="actions"><button class="primary" id="cap-ok" disabled>Valider cette position</button><button class="ghost" id="cap-cancel">Annuler</button></div>
+</div>
+
+<!-- Plant sheet -->
+<div class="sheet" id="sheet-plant" hidden role="dialog" aria-labelledby="sp-title">
+  <div class="grab"></div>
+  <h2 id="sp-title">Nouvelle plante</h2>
+  <div class="form">
+    <label class="full">Nom courant<input class="field" id="f-nom" placeholder="Pommier, Cassissier, Ail des ours…"></label>
+    <label class="full">Nom latin<input class="field" id="f-latin" placeholder="Malus domestica"></label>
+    <label>Catégorie<select class="field" id="f-cat"></select></label>
+    <label>Variété / cultivar<input class="field" id="f-var" placeholder="Reinette du Mans"></label>
+    <label id="lbl-pg">Porte-greffe<input class="field" id="f-pg" placeholder="MM106, franc…"></label>
+    <label>Planté le<input class="field" id="f-date" type="date"></label>
+    <label>Provenance<input class="field" id="f-prov" placeholder="Pépinière, bouture, don…"></label>
+    <label>État<select class="field" id="f-etat"></select></label>
+    <label class="full">Notes (pollinisateur, exposition, taille, récolte…)<textarea class="field" id="f-notes" rows="3"></textarea></label>
+    <div class="box full">
+      <div class="row between"><strong>Photo</strong><span class="small" id="photo-status"></span></div>
+      <img class="photo-prev" id="photo-prev" alt="Photo de la plante" hidden>
+      <div class="row">
+        <input id="f-photo" type="file" accept="image/*" hidden>
+        <button class="ghost" id="btn-photo">Prendre / choisir une photo</button>
+        <button class="ghost danger" id="btn-photo-rm" hidden>Retirer</button>
+      </div>
+    </div>
+    <div class="box full">
+      <div class="row between"><strong>Emplacement</strong><span class="small" id="pos-status"></span></div>
+      <div class="row"><button class="ghost" id="btn-regps">Reprendre au GPS</button><button class="ghost" id="btn-replace">Placer sur la carte</button><button class="ghost" id="btn-goto">M'y guider</button></div>
+      <label>Latitude, longitude<input class="field mono" id="f-gps" placeholder="45.32700, 1.07470" inputmode="decimal"></label>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="primary" id="btn-save">Enregistrer</button>
+    <button class="ghost" id="btn-close">Fermer</button>
+    <button class="ghost danger" id="btn-del" hidden>Supprimer</button>
+  </div>
+  <div class="box" id="del-confirm" hidden style="margin-top:10px">
+    <div>Supprimer définitivement cette fiche ?</div>
+    <div class="row"><button class="ghost danger" id="btn-del-yes">Oui, supprimer</button><button class="ghost" id="btn-del-no">Garder</button></div>
+  </div>
+</div>
+
+<!-- Catalogue sheet -->
+<div class="sheet" id="sheet-list" hidden role="dialog" aria-labelledby="sl-title">
+  <div class="grab"></div>
+  <h2 id="sl-title">Catalogue</h2>
+  <div class="filters">
+    <input class="field" id="q" type="search" placeholder="Chercher : pommier, Ribes…">
+    <select class="field" id="sort"><option value="nom">A → Z</option><option value="dist">Les plus proches</option><option value="date">Plantées récemment</option><option value="cat">Par catégorie</option></select>
+  </div>
+  <div class="chips" id="chips" style="margin-bottom:10px"></div>
+  <div class="list" id="list"></div>
+  <div class="actions"><button class="ghost" id="btn-list-close">Fermer</button></div>
+</div>
+
+<!-- Menu sheet -->
+<div class="sheet" id="sheet-menu" hidden role="dialog" aria-labelledby="sm-title">
+  <div class="grab"></div>
+  <h2 id="sm-title">Réglages &amp; sauvegarde</h2>
+  <div class="form">
+    <div class="box full">
+      <strong>Sauvegarde</strong>
+      <div class="small">Le carnet est enregistré dans ce téléphone. Exportez une sauvegarde de temps en temps (photos comprises) et gardez-la ailleurs (Drive, mail).</div>
+      <div class="row"><button class="ghost" id="btn-export">Exporter la sauvegarde</button><button class="ghost" id="btn-csv">Exporter en tableur</button></div>
+      <div class="row"><input id="f-import" type="file" accept=".json,application/json" hidden><button class="ghost" id="btn-import">Importer une sauvegarde</button></div>
+      <div class="small" id="backup-status"></div>
+    </div>
+    <div class="box full">
+      <strong>Hors ligne</strong>
+      <div class="small" id="offline-status">Les morceaux de carte que vous regardez sont gardés pour le terrain sans réseau.</div>
+      <div class="row"><button class="ghost" id="btn-precache">Télécharger la carte du terrain</button></div>
+    </div>
+  </div>
+  <div class="actions"><button class="ghost" id="btn-menu-close">Fermer</button></div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="leaflet.js"></script>
+<script>
+/* ===== Constants ===== */
+const HOME = { lat: 45.32707, lng: 1.07469, z: 19 };
+const CATS = [
+  { id: 'arbre', label: 'Arbre fruitier', color: '#c0532f' },
+  { id: 'petit', label: 'Petit fruitier', color: '#8e3b6e' },
+  { id: 'vivace', label: 'Vivace comestible', color: '#4f8a3a' },
+  { id: 'arom', label: 'Aromatique', color: '#2a8a80' },
+  { id: 'haie', label: 'Arbuste / haie', color: '#97762a' },
+  { id: 'grimp', label: 'Grimpante', color: '#4b5fa8' },
+  { id: 'couvre', label: 'Couvre-sol', color: '#6f8f22' },
+  { id: 'autre', label: 'Autre', color: '#757a70' },
+];
+const ETATS = [{ id: 'ok', label: 'En forme' }, { id: 'surv', label: 'À surveiller' }, { id: 'malade', label: 'Malade' }, { id: 'mort', label: 'Morte' }];
+const catOf = id => CATS.find(c => c.id === id) || CATS[CATS.length - 1];
+const etatOf = id => ETATS.find(e => e.id === id) || ETATS[0];
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ===== Storage (IndexedDB) ===== */
+const idb = (() => {
+  let dbp;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('carnet-joutade', 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore('plantes', { keyPath: 'id' }); r.result.createObjectStore('photos'); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const tx = async (store, mode, fn) => { const d = await open(); return new Promise((res, rej) => { const t = d.transaction(store, mode); const s = t.objectStore(store); const out = fn(s); t.oncomplete = () => res(out && out.result !== undefined ? out.result : out); t.onerror = () => rej(t.error); }); };
+  return {
+    all: () => tx('plantes', 'readonly', s => s.getAll()),
+    put: p => tx('plantes', 'readwrite', s => s.put(p)),
+    del: id => tx('plantes', 'readwrite', s => s.delete(id)),
+    clear: () => tx('plantes', 'readwrite', s => s.clear()),
+    putPhoto: (id, blob) => tx('photos', 'readwrite', s => s.put(blob, id)),
+    getPhoto: id => tx('photos', 'readonly', s => s.get(id)),
+    delPhoto: id => tx('photos', 'readwrite', s => s.delete(id)),
+  };
+})();
+const photoUrls = new Map();
+async function photoUrl(id) {
+  if (!id) return null;
+  if (photoUrls.has(id)) return photoUrls.get(id);
+  const b = await idb.getPhoto(id); if (!b) return null;
+  const u = URL.createObjectURL(b); photoUrls.set(id, u); return u;
+}
+
+/* ===== State ===== */
+let plants = [];
+let draft = null;
+let me = null;               // {lat,lng,acc,heading}
+let follow = false;
+let showLabels = true;
+let finderId = null;
+const hiddenCats = new Set();
+let placeCb = null;
+
+/* ===== Map ===== */
+const ign = (layer, style, fmt) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=${encodeURIComponent(style)}&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=${fmt}`;
+const map = L.map('map', { zoomControl: false, maxZoom: 22, attributionControl: true, tap: false }).setView([HOME.lat, HOME.lng], HOME.z);
+const ortho = L.tileLayer(ign('ORTHOIMAGERY.ORTHOPHOTOS', 'normal', 'image/jpeg'), { maxNativeZoom: 19, maxZoom: 22, attribution: 'IGN-F / Géoportail' });
+const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 22, attribution: '© OpenStreetMap' });
+const cadastre = L.tileLayer(ign('CADASTRALPARCELS.PARCELLAIRE_EXPRESS', 'PCI vecteur', 'image/png'), { maxNativeZoom: 19, maxZoom: 22, opacity: .85 });
+let baseIdx = 0;
+const bases = [{ name: 'Photo aérienne + cadastre', layers: [ortho, cadastre] }, { name: 'Photo aérienne seule', layers: [ortho] }, { name: 'Plan (OpenStreetMap)', layers: [osm, cadastre] }];
+function applyBase() { [ortho, osm, cadastre].forEach(l => map.removeLayer(l)); bases[baseIdx].layers.forEach(l => l.addTo(map)); }
+applyBase();
+L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+const plantLayer = L.layerGroup().addTo(map);
+const meLayer = L.layerGroup().addTo(map);
+
+function renderMarkers() {
+  plantLayer.clearLayers();
+  for (const p of plants) {
+    if (p.lat == null || hiddenCats.has(p.cat)) continue;
+    const c = catOf(p.cat);
+    const icon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: `<div class="pm${p.etat === 'mort' ? ' dead' : ''}${draft && draft.id === p.id ? ' sel' : ''}" style="background:${c.color}"></div>` });
+    const m = L.marker([p.lat, p.lng], { icon, keyboard: true, title: p.nom }).addTo(plantLayer);
+    m.bindTooltip(esc(p.nom) + (p.variete ? ' · ' + esc(p.variete) : ''), { permanent: true, direction: 'right', offset: [10, 0], className: 'lbl' });
+    m.on('click', () => openPlant(p));
+  }
+  updateLabelVisibility();
+}
+function updateLabelVisibility() { document.body.classList.toggle('hide-labels', !showLabels || map.getZoom() < 19); }
+map.on('zoomend', updateLabelVisibility);
+
+/* ===== Geolocation ===== */
+let watchId = null, meDot = null, meCircle = null;
+function startWatch() {
+  if (watchId != null) return;
+  if (!('geolocation' in navigator)) { toast('Ce téléphone ne donne pas sa position.'); return; }
+  watchId = navigator.geolocation.watchPosition(pos => {
+    me = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy, heading: pos.coords.heading };
+    drawMe(); updateFinder(); captureFeed(pos);
+    if (follow) map.panTo([me.lat, me.lng], { animate: true });
+  }, err => {
+    if (err.code === 1) toast('Position refusée : autorisez la localisation pour cette appli dans les réglages du téléphone.');
+    else if (capture) $('cap-verdict').textContent = 'Signal GPS introuvable. Sortez à découvert.';
+  }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+}
+function drawMe() {
+  if (!me) return;
+  const ll = [me.lat, me.lng];
+  if (!meDot) {
+    meCircle = L.circle(ll, { radius: me.acc, color: getComputedStyle(document.documentElement).getPropertyValue('--gps').trim() || '#1f6fd1', weight: 1, fillOpacity: .12 }).addTo(meLayer);
+    meDot = L.circleMarker(ll, { radius: 8, color: '#fff', weight: 3, fillColor: '#1f6fd1', fillOpacity: 1 }).addTo(meLayer);
+  } else { meDot.setLatLng(ll); meCircle.setLatLng(ll).setRadius(me.acc); }
+  $('gpschip').hidden = false;
+  $('gpschip').innerHTML = `GPS <b>± ${Math.round(me.acc)} m</b>`;
+}
+$('btn-locate').onclick = () => {
+  startWatch(); follow = !follow; $('btn-locate').classList.toggle('on', follow);
+  if (follow && me) map.setView([me.lat, me.lng], Math.max(map.getZoom(), 20));
+  else if (follow) toast('Recherche de votre position…');
+};
+map.on('dragstart', () => { if (follow) { follow = false; $('btn-locate').classList.remove('on'); } });
+
+/* ===== Precise capture (averaging) ===== */
+let capture = null; // {samples:[], onDone}
+function startCapture(onDone) {
+  capture = { samples: [], onDone, t0: Date.now() };
+  $('cap-acc').textContent = '± – m'; $('cap-bar').style.width = '0'; $('cap-verdict').textContent = 'Recherche du signal GPS…'; $('cap-n').textContent = ''; $('cap-ok').disabled = true;
+  openSheet('sheet-capture');
+  startWatch();
+  if (me) captureFeed({ coords: { latitude: me.lat, longitude: me.lng, accuracy: me.acc }, timestamp: Date.now() });
+}
+function captureFeed(pos) {
+  if (!capture) return;
+  const a = pos.coords.accuracy;
+  if (a > 50) { $('cap-verdict').textContent = `Signal faible (± ${Math.round(a)} m), patientez…`; return; }
+  capture.samples.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: a });
+  const s = capture.samples.slice(-30);
+  let W = 0, la = 0, ln = 0;
+  for (const x of s) { const w = 1 / (x.acc * x.acc); W += w; la += x.lat * w; ln += x.lng * w; }
+  const best = Math.min(...s.map(x => x.acc));
+  const est = Math.max(best / Math.sqrt(Math.min(s.length, 10)), Math.min(best, 2));
+  capture.result = { lat: la / W, lng: ln / W, acc: est };
+  $('cap-acc').textContent = `± ${est < 10 ? est.toFixed(1) : Math.round(est)} m`;
+  $('cap-bar').style.width = Math.max(5, Math.min(100, 100 * (1 - (est - 1) / 14))) + '%';
+  $('cap-verdict').textContent = est <= 3 ? 'Très bonne précision. Vous pouvez valider.' : est <= 6 ? 'Correct. Encore quelques secondes pour affiner.' : 'Précision moyenne. Restez immobile.';
+  $('cap-n').textContent = `${capture.samples.length} mesure${capture.samples.length > 1 ? 's' : ''}`;
+  $('cap-ok').disabled = false;
+}
+$('cap-ok').onclick = () => { const c = capture; capture = null; closeSheets(); if (c && c.result) c.onDone(c.result); };
+$('cap-cancel').onclick = () => { const c = capture; capture = null; closeSheets(); if (c && c.onCancel) c.onCancel(); if (draft && draft._reopen) { delete draft._reopen; openSheet('sheet-plant'); } };
+
+/* ===== Manual placement (crosshair) ===== */
+function startPlace(cb, start) {
+  closeSheets(); placeCb = cb;
+  if (start) map.setView(start, Math.max(map.getZoom(), 20));
+  $('placebar').hidden = false; $('crosshair').hidden = false;
+}
+$('place-ok').onclick = () => { const c = map.getCenter(); endPlace(); placeCb && placeCb({ lat: c.lat, lng: c.lng, acc: null }); };
+$('place-cancel').onclick = () => { endPlace(); if (draft) openSheet('sheet-plant'); };
+function endPlace() { $('placebar').hidden = true; $('crosshair').hidden = true; }
+
+/* ===== Distance / bearing ===== */
+function distBear(a, b) {
+  const R = 6371000, toR = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * toR, dLng = (b.lng - a.lng) * toR;
+  const x = dLng * Math.cos((a.lat + b.lat) / 2 * toR);
+  const d = Math.sqrt(x * x + dLat * dLat) * R;
+  const brg = (Math.atan2(x, dLat) / toR + 360) % 360;
+  return { d, brg };
+}
+const DIRS = ['nord', 'nord-est', 'est', 'sud-est', 'sud', 'sud-ouest', 'ouest', 'nord-ouest'];
+const dirName = b => DIRS[Math.round(b / 45) % 8];
+function updateFinder() {
+  if (!finderId) return;
+  const p = plants.find(x => x.id === finderId); if (!p || p.lat == null) { $('finder').hidden = true; return; }
+  $('f-name').textContent = p.nom + (p.variete ? ' · ' + p.variete : '');
+  if (!me) { $('f-big').textContent = 'Recherche GPS…'; return; }
+  const { d, brg } = distBear(me, p);
+  $('f-big').textContent = d < Math.max(2, me.acc * .6) ? 'Vous y êtes' : `${d < 10 ? d.toFixed(1) : Math.round(d)} m · ${dirName(brg)}`;
+  const head = compassHeading != null ? compassHeading : 0;
+  $('f-arrow').style.transform = `rotate(${brg - head}deg)`;
+  $('f-name').textContent = (p.nom + (p.variete ? ' · ' + p.variete : '')) + (compassHeading == null ? ' · flèche : nord en haut' : '');
+}
+let compassHeading = null;
+function enableCompass() {
+  const handler = e => {
+    if (e.webkitCompassHeading != null) compassHeading = e.webkitCompassHeading;
+    else if (e.absolute && e.alpha != null) compassHeading = (360 - e.alpha) % 360;
+    updateFinder();
+  };
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
+      DeviceOrientationEvent.requestPermission().then(s => { if (s === 'granted') addEventListener('deviceorientation', handler); }).catch(() => {});
+    } else { addEventListener('deviceorientationabsolute', handler); addEventListener('deviceorientation', handler); }
+  } catch (e) {}
+}
+function startFinder(p) {
+  finderId = p.id; closeSheets(); startWatch(); enableCompass();
+  $('finder').hidden = false; updateFinder();
+  const b = L.latLngBounds([[p.lat, p.lng]]); if (me) b.extend([me.lat, me.lng]);
+  map.fitBounds(b.pad(.4), { maxZoom: 20 });
+}
+$('f-close').onclick = () => { finderId = null; $('finder').hidden = true; };
+
+/* ===== UI helpers ===== */
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
+function openSheet(id) { closeSheets(true); $('backdrop').hidden = false; $(id).hidden = false; $(id).scrollTop = 0; }
+function closeSheets(keepBackdrop) { ['sheet-plant', 'sheet-list', 'sheet-menu', 'sheet-capture'].forEach(i => $(i).hidden = true); if (!keepBackdrop) $('backdrop').hidden = true; }
+$('backdrop').onclick = () => { if (!$('sheet-capture').hidden) return; closeSheets(); draft = null; renderMarkers(); };
+const fmtLL = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+function parseLatLng(s) {
+  const m = String(s || '').match(/(-?\d+(?:[.,]\d+)?)[\s,;]+(-?\d+(?:[.,]\d+)?)/); if (!m) return null;
+  const lat = parseFloat(m[1].replace(',', '.')), lng = parseFloat(m[2].replace(',', '.'));
+  return isFinite(lat) && isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
+}
+const fmtDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+function since(d) {
+  if (!d) return ''; const days = (Date.now() - new Date(d).getTime()) / 864e5; if (days < 0) return 'à venir';
+  if (days < 1) return 'aujourd’hui'; if (days < 45) return `depuis ${Math.round(days)} j`; if (days < 540) return `depuis ${Math.round(days / 30.4)} mois`;
+  const y = Math.floor(days / 365.25); return `depuis ${y} an${y > 1 ? 's' : ''}`;
+}
+function renderStats() {
+  const n = plants.length, sp = new Set(plants.map(p => (p.latin || p.nom || '').trim().toLowerCase()).filter(Boolean)).size;
+  $('stats').textContent = n ? `${n} plante${n > 1 ? 's' : ''} · ${sp} espèce${sp > 1 ? 's' : ''}` : 'Carnet vide : allez au pied d’une plante';
+}
+
+/* ===== Plant sheet ===== */
+async function fillPlantSheet() {
+  const p = draft;
+  $('sp-title').textContent = p.id ? (p.nom || 'Fiche') : 'Nouvelle plante';
+  $('f-nom').value = p.nom || ''; $('f-latin').value = p.latin || ''; $('f-cat').value = p.cat || 'arbre';
+  $('f-var').value = p.variete || ''; $('f-pg').value = p.portegreffe || ''; $('f-date').value = p.date || '';
+  $('f-prov').value = p.provenance || ''; $('f-etat').value = p.etat || 'ok'; $('f-notes').value = p.notes || '';
+  $('btn-del').hidden = !p.id; $('del-confirm').hidden = true; $('photo-status').textContent = '';
+  await updateBits();
+}
+async function updateBits() {
+  const p = draft;
+  $('lbl-pg').hidden = $('f-cat').value !== 'arbre';
+  $('f-gps').value = p.lat != null ? fmtLL(p.lat, p.lng) : '';
+  $('pos-status').textContent = p.lat == null ? 'pas encore placée' : p.acc ? `GPS ± ${p.acc < 10 ? p.acc.toFixed(1) : Math.round(p.acc)} m` : 'placée à la main';
+  $('btn-goto').hidden = p.lat == null || !p.id;
+  const u = await photoUrl(p.photoId); $('photo-prev').hidden = !u; if (u) $('photo-prev').src = u;
+  $('btn-photo-rm').hidden = !p.photoId;
+}
+function readForm() {
+  Object.assign(draft, {
+    nom: $('f-nom').value.trim(), latin: $('f-latin').value.trim(), cat: $('f-cat').value, variete: $('f-var').value.trim(),
+    portegreffe: $('f-cat').value === 'arbre' ? $('f-pg').value.trim() : '', date: $('f-date').value, provenance: $('f-prov').value.trim(),
+    etat: $('f-etat').value, notes: $('f-notes').value.trim(),
+  });
+  const ll = parseLatLng($('f-gps').value);
+  if (ll && (draft.lat == null || Math.abs(ll.lat - draft.lat) > 1e-7 || Math.abs(ll.lng - draft.lng) > 1e-7)) { draft.lat = ll.lat; draft.lng = ll.lng; draft.acc = null; }
+  if (!ll) { draft.lat = null; draft.lng = null; draft.acc = null; }
+}
+function openPlant(p) { draft = JSON.parse(JSON.stringify(p)); fillPlantSheet(); openSheet('sheet-plant'); renderMarkers(); }
+async function savePlant() {
+  readForm();
+  if (!draft.nom) { $('f-nom').focus(); toast('Donnez-lui au moins un nom.'); return; }
+  const isNew = !draft.id;
+  if (isNew) draft.id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  draft.updatedAt = new Date().toISOString(); draft.createdAt = draft.createdAt || draft.updatedAt;
+  const rec = { ...draft }; delete rec._reopen;
+  await idb.put(rec);
+  const i = plants.findIndex(x => x.id === rec.id); if (i >= 0) plants[i] = rec; else plants.push(rec);
+  draft = null; closeSheets(); renderAll(); toast(isNew ? 'Plante ajoutée' : 'Fiche mise à jour');
+}
+$('btn-save').onclick = savePlant;
+$('btn-close').onclick = () => { closeSheets(); draft = null; renderMarkers(); };
+$('btn-del').onclick = () => $('del-confirm').hidden = false;
+$('btn-del-no').onclick = () => $('del-confirm').hidden = true;
+$('btn-del-yes').onclick = async () => {
+  await idb.del(draft.id); if (draft.photoId) await idb.delPhoto(draft.photoId);
+  plants = plants.filter(p => p.id !== draft.id); draft = null; closeSheets(); renderAll(); toast('Fiche supprimée');
+};
+$('f-cat').onchange = () => $('lbl-pg').hidden = $('f-cat').value !== 'arbre';
+$('btn-regps').onclick = () => { readForm(); draft._reopen = true; startCapture(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: r.acc }); delete draft._reopen; updateBits(); openSheet('sheet-plant'); }); };
+$('btn-replace').onclick = () => { readForm(); startPlace(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: null }); updateBits(); openSheet('sheet-plant'); }, draft.lat != null ? [draft.lat, draft.lng] : null); };
+$('btn-goto').onclick = () => { readForm(); const p = plants.find(x => x.id === draft.id); if (p) startFinder(p); };
+$('btn-photo').onclick = () => $('f-photo').click();
+$('btn-photo-rm').onclick = () => { draft.photoId = null; updateBits(); };
+$('f-photo').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  $('photo-status').textContent = 'Enregistrement…';
+  try {
+    const blob = await shrink(file, 1600); const id = 'ph' + Date.now().toString(36);
+    await idb.putPhoto(id, blob); draft.photoId = id; $('photo-status').textContent = '';
+  } catch (err) { $('photo-status').textContent = 'Photo non enregistrée'; }
+  updateBits();
+};
+async function shrink(file, max) {
+  try {
+    const bmp = await createImageBitmap(file); const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(b => r(b || file), 'image/jpeg', .82));
+  } catch (e) { return file; }
+}
+
+/* ===== Add flow ===== */
+$('btn-add').onclick = () => {
+  draft = { cat: 'arbre', etat: 'ok', date: new Date().toISOString().slice(0, 10) };
+  startCapture(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: r.acc }); fillPlantSheet(); openSheet('sheet-plant'); map.setView([r.lat, r.lng], Math.max(map.getZoom(), 20)); });
+  capture.onCancel = () => { draft = null; };
+};
+map.on('contextmenu', e => { // long press on the map: add a plant there by hand
+  draft = { cat: 'arbre', etat: 'ok', date: new Date().toISOString().slice(0, 10), lat: e.latlng.lat, lng: e.latlng.lng, acc: null };
+  fillPlantSheet(); openSheet('sheet-plant');
+});
+
+/* ===== Catalogue ===== */
+function renderChips() {
+  const used = new Set(plants.map(p => p.cat));
+  $('chips').innerHTML = CATS.filter(c => used.has(c.id)).map(c => `<button class="chip" data-cat="${c.id}" aria-pressed="${!hiddenCats.has(c.id)}"><i style="background:${c.color}"></i>${esc(c.label)} <span class="small">${plants.filter(p => p.cat === c.id).length}</span></button>`).join('');
+}
+$('chips').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; const c = b.dataset.cat; hiddenCats.has(c) ? hiddenCats.delete(c) : hiddenCats.add(c); renderChips(); renderList(); renderMarkers(); };
+async function renderList() {
+  const q = $('q').value.trim().toLowerCase(), sort = $('sort').value;
+  let rows = plants.filter(p => !hiddenCats.has(p.cat) && (!q || [p.nom, p.latin, p.variete, p.notes, p.provenance, catOf(p.cat).label].join(' ').toLowerCase().includes(q)));
+  const dist = p => me && p.lat != null ? distBear(me, p).d : Infinity;
+  const by = { nom: (a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'), date: (a, b) => (b.date || '').localeCompare(a.date || ''), dist: (a, b) => dist(a) - dist(b), cat: (a, b) => CATS.indexOf(catOf(a.cat)) - CATS.indexOf(catOf(b.cat)) || (a.nom || '').localeCompare(b.nom || '', 'fr') };
+  rows.sort(by[sort]);
+  if (!rows.length) { $('list').innerHTML = `<div class="nores">${plants.length ? 'Aucune plante ne correspond.' : 'Rien encore. Allez au pied d’une plante et touchez « Je suis au pied d’une plante ».'}</div>`; return; }
+  const html = [];
+  for (const p of rows) {
+    const c = catOf(p.cat), e = etatOf(p.etat), u = await photoUrl(p.photoId);
+    const meta = [c.label, p.variete && `« ${esc(p.variete)} »`, p.portegreffe && `sur ${esc(p.portegreffe)}`, p.date && `planté le ${fmtDate(p.date)} (${since(p.date)})`].filter(Boolean).join(' · ');
+    let where = p.lat == null ? 'pas encore placée' : '';
+    if (p.lat != null && me) { const { d, brg } = distBear(me, p); where = `à ${d < 10 ? d.toFixed(1) : Math.round(d)} m · ${dirName(brg)}`; }
+    html.push(`<button class="tag" data-id="${esc(p.id)}" style="--c:${c.color}"><span class="notch"></span><span class="body"><div class="name">${esc(p.nom)}</div>${p.latin ? `<div class="latin">${esc(p.latin)}</div>` : ''}<div class="meta">${meta}</div>${where ? `<div class="dist">${where}</div>` : ''}</span><span class="side2"><span class="state ${e.id}">${e.label}</span>${u ? `<img src="${u}" alt="">` : ''}</span></button>`);
+  }
+  $('list').innerHTML = html.join('');
+}
+$('btn-list').onclick = () => { renderChips(); renderList(); openSheet('sheet-list'); };
+$('btn-list-close').onclick = () => closeSheets();
+$('list').onclick = e => { const t = e.target.closest('.tag'); if (!t) return; const p = plants.find(x => x.id === t.dataset.id); if (!p) return; if (p.lat != null) map.setView([p.lat, p.lng], Math.max(map.getZoom(), 20)); openPlant(p); };
+$('q').oninput = renderList; $('sort').oninput = () => { if ($('sort').value === 'dist') startWatch(); renderList(); };
+
+/* ===== Side buttons ===== */
+$('btn-layer').onclick = () => { baseIdx = (baseIdx + 1) % bases.length; applyBase(); toast(bases[baseIdx].name); };
+$('btn-labels').onclick = () => { showLabels = !showLabels; updateLabelVisibility(); toast(showLabels ? 'Noms affichés (en zoomant)' : 'Noms masqués'); };
+$('btn-home').onclick = () => { follow = false; $('btn-locate').classList.remove('on'); map.setView([HOME.lat, HOME.lng], HOME.z); };
+
+/* ===== Menu: backup, offline ===== */
+$('btn-menu').onclick = () => { $('backup-status').textContent = lastBackupText(); openSheet('sheet-menu'); };
+$('btn-menu-close').onclick = () => closeSheets();
+function lastBackupText() { try { const d = localStorage.getItem('lastBackup'); return d ? `Dernière sauvegarde : ${new Date(d).toLocaleString('fr-FR')}` : 'Aucune sauvegarde exportée pour l’instant.'; } catch (e) { return ''; } }
+const blobToB64 = b => new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });
+async function downloadFile(name, blob) {
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); return true;
+}
+$('btn-export').onclick = async () => {
+  $('backup-status').textContent = 'Préparation…';
+  const photos = {};
+  for (const p of plants) if (p.photoId) { const b = await idb.getPhoto(p.photoId); if (b) photos[p.photoId] = await blobToB64(b); }
+  const data = JSON.stringify({ app: 'carnet-joutade', version: 1, exporte: new Date().toISOString(), plantes: plants, photos });
+  const ok = await downloadFile(`carnet-joutade-${new Date().toISOString().slice(0, 10)}.json`, new Blob([data], { type: 'application/json' }));
+  if (ok) { try { localStorage.setItem('lastBackup', new Date().toISOString()); } catch (e) {} }
+  $('backup-status').textContent = ok ? lastBackupText() : 'Export annulé.';
+};
+$('btn-csv').onclick = () => {
+  const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['date', 'Planté le'], ['provenance', 'Provenance'], ['etat', 'État'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
+  const cell = v => { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
+  downloadFile('carnet-joutade.csv', new Blob(['﻿' + [cols.map(c => c[1]).join(';'), ...rows].join('\n')], { type: 'text/csv' }));
+};
+$('btn-import').onclick = () => $('f-import').click();
+$('f-import').onchange = async e => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text()); const list = data.plantes || [];
+    let n = 0;
+    for (const [id, b64] of Object.entries(data.photos || {})) { const b = await (await fetch(b64)).blob(); await idb.putPhoto(id, b); }
+    for (const p of list) { if (!p.id || !p.nom || p.exemple) continue; await idb.put(p); n++; }
+    plants = await idb.all(); renderAll();
+    $('backup-status').textContent = `${n} fiche${n > 1 ? 's' : ''} importée${n > 1 ? 's' : ''}.`;
+  } catch (err) { $('backup-status').textContent = 'Ce fichier n’est pas une sauvegarde du carnet.'; }
+};
+// pre-cache tiles over the land for offline use
+function tilesFor(bounds, z) {
+  const t = (lat, lng) => { const n = 2 ** z, x = Math.floor((lng + 180) / 360 * n), r = lat * Math.PI / 180, y = Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n); return { x, y }; };
+  const a = t(bounds.north, bounds.west), b = t(bounds.south, bounds.east), out = [];
+  for (let x = a.x; x <= b.x; x++) for (let y = a.y; y <= b.y; y++) out.push({ x, y, z });
+  return out;
+}
+$('btn-precache').onclick = async () => {
+  const B = { north: HOME.lat + .0018, south: HOME.lat - .0018, east: HOME.lng + .0026, west: HOME.lng - .0026 };
+  const urls = [];
+  for (let z = 15; z <= 19; z++) for (const t of tilesFor(B, z)) for (const l of [ortho, cadastre]) urls.push(L.Util.template(l._url, t));
+  let done = 0, fail = 0;
+  $('offline-status').textContent = `Téléchargement : 0 / ${urls.length}`;
+  for (let i = 0; i < urls.length; i += 6) {
+    await Promise.all(urls.slice(i, i + 6).map(u => fetch(u, { mode: 'no-cors' }).catch(() => fail++).finally(() => done++)));
+    $('offline-status').textContent = `Téléchargement : ${done} / ${urls.length}`;
+  }
+  $('offline-status').textContent = fail ? `Carte téléchargée (${fail} morceaux manquants, réessayez avec du réseau).` : 'Carte du terrain disponible hors ligne.';
+};
+
+/* ===== Boot ===== */
+CATS.forEach(c => $('f-cat').insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.label}</option>`));
+ETATS.forEach(e => $('f-etat').insertAdjacentHTML('beforeend', `<option value="${e.id}">${e.label}</option>`));
+function renderAll() { renderStats(); renderMarkers(); if (!$('sheet-list').hidden) { renderChips(); renderList(); } }
+(async () => {
+  try { plants = await idb.all(); } catch (e) { toast('Stockage indisponible : le carnet ne pourra pas enregistrer.'); }
+  renderAll();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  startWatch();
+})();
+if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>
