@@ -555,12 +555,12 @@ async function shrink(file, max) {
 
 /* ===== Add flow ===== */
 $('btn-add').onclick = () => {
-  draft = { cat: 'arbre', etat: 'ok', date: new Date().toISOString().slice(0, 10) };
+  draft = { cat: 'arbre', etat: 'ok', date: '' };
   startCapture(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: r.acc }); fillPlantSheet(); openSheet('sheet-plant'); map.setView([r.lat, r.lng], Math.max(map.getZoom(), 20)); });
   capture.onCancel = () => { draft = null; };
 };
 map.on('contextmenu', e => { // long press on the map: add a plant there by hand
-  draft = { cat: 'arbre', etat: 'ok', date: new Date().toISOString().slice(0, 10), lat: e.latlng.lat, lng: e.latlng.lng, acc: null };
+  draft = { cat: 'arbre', etat: 'ok', date: '', lat: e.latlng.lat, lng: e.latlng.lng, acc: null };
   fillPlantSheet(); openSheet('sheet-plant');
 });
 
