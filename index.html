@@ -961,6 +961,7 @@ function tilesFor(bounds, z) {
   return out;
 }
 $('btn-precache').onclick = async () => {
+  if (!meta.terrain || meta.terrain.lat == null) { $('offline-status').textContent = 'Réglez d’abord l’emplacement de votre terrain (Mon terrain, juste au-dessus).'; return; }
   const B = { north: HOME.lat + .0018, south: HOME.lat - .0018, east: HOME.lng + .0026, west: HOME.lng - .0026 };
   const urls = [];
   for (let z = 15; z <= 19; z++) for (const t of tilesFor(B, z)) for (const l of [ortho, cadastre]) urls.push(L.Util.template(l._url, t));
