@@ -19,11 +19,12 @@
   --f-display: "IM Fell English", Georgia, serif;
   --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --soil: #dcc8a2; --soil-line: rgba(70,45,20,.16); --soil-bold: rgba(70,45,20,.42); --warn-bg: #fbecc8; --warn-ink: #6b4a05;
 }
 @media (prefers-color-scheme: dark) { :root {
   --bg: #131712; --surface: #1c2119; --ink: #e5eadd; --muted: #9aa592; --line: #313a2d;
   --accent: #9fc98c; --accent-ink: #13200f; --soft: #263022; --danger: #e38a78; --gps: #6aa8ff;
-  --shadow: 0 8px 28px rgba(0,0,0,.55); color-scheme: dark } }
+  --shadow: 0 8px 28px rgba(0,0,0,.55); --soil: #4a3c2a; --soil-line: rgba(255,235,205,.1); --soil-bold: rgba(255,235,205,.32); --warn-bg: #3d3115; --warn-ink: #f2d38a; color-scheme: dark } }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-body); overflow: hidden; -webkit-tap-highlight-color: transparent; }
@@ -131,6 +132,72 @@ button { cursor: pointer; }
 .crosshair::before, .crosshair::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.6); }
 .crosshair::before { left: 21px; top: 0; width: 2px; height: 44px; }
 .crosshair::after { top: 21px; left: 0; height: 2px; width: 44px; }
+.zonebar { position: fixed; z-index: 600; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(env(safe-area-inset-bottom,0px) + 14px); background: var(--surface); box-shadow: var(--shadow); border-radius: 16px 16px 0 0; display: flex; flex-direction: column; gap: 10px; }
+.zonebar .hint { font-size: .85rem; color: var(--muted); }
+.zonebar .row button { flex: 1 1 auto; }
+.zonebar input[type=range] { width: 100%; accent-color: var(--accent); }
+.zonebar .readout { font: 500 .85rem var(--f-mono); }
+.zhead { font: 400 1.2rem var(--f-display); margin: 16px 0 8px; }
+.ztag .swatch { width: 26px; height: 26px; border-radius: 6px; border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 35%, transparent); }
+.ztag.projet .swatch { border-style: dashed; background: transparent; }
+.leaflet-tooltip.zlbl { background: rgba(255,255,255,.85); color: #1d261c; }
+.planview { position: fixed; inset: 0; z-index: 800; background: var(--bg); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top,0px); }
+.pv-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 6px; }
+.pv-head h2 { font: 400 1.4rem/1.1 var(--f-display); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-head .round { box-shadow: none; border: 1px solid var(--line); width: 42px; height: 42px; }
+.pv-tools { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 12px 8px; align-items: center; }
+.pv-tools .primary, .pv-tools .secondary { box-shadow: none; padding: 10px 14px; border-radius: 12px; }
+.pv-tools .secondary { border: 1px solid var(--line); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 7px 11px; font-weight: 700; }
+.seg span { padding: 7px 4px; font: 500 .85rem var(--f-mono); font-variant-numeric: tabular-nums; align-self: center; }
+.ghost[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pv-mode { margin: 0 12px 8px; background: var(--ink); color: var(--bg); border-radius: 12px; padding: 9px 12px; display: flex; gap: 10px; align-items: center; justify-content: space-between; font-size: .9rem; }
+.pv-mode { flex-wrap: wrap; }
+.pv-mbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+.pv-rot { padding: 0 12px 8px; color: var(--muted); }
+.pv-rot b { color: var(--ink); }
+.pv-mode button { background: transparent; color: var(--bg); border: 1px solid currentColor; border-radius: 9px; padding: 5px 10px; flex: none; }
+.pv-canvas { flex: 1 1 auto; min-height: 180px; overflow: auto; background: var(--soft); -webkit-overflow-scrolling: touch; }
+.pv-canvas svg { display: block; margin: 0 auto; }
+.pv-canvas svg text { font-family: var(--f-body); }
+.pv-list { flex: 0 1 auto; max-height: 36dvh; overflow: auto; padding: 10px 12px calc(env(safe-area-inset-bottom,0px) + 14px); border-top: 1px solid var(--line); background: var(--surface); }
+.planview.serre .pv-canvas { display: none; }
+.planview.serre .pv-list { flex: 1 1 auto; max-height: none; }
+.pv-list h3 { font: 700 .72rem var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 6px; }
+.pv-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 8px 2px; }
+.pv-row i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.pv-row .t { flex: 1; min-width: 0; }
+.pv-row .t b { display: block; }
+.pv-row .t span { font-size: .8rem; color: var(--muted); }
+.pv-row .n { font: 500 .85rem var(--f-mono); color: var(--muted); }
+.pv-row.ghostrow { opacity: .6; }
+.pv-row .mini { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 6px 10px; font-weight: 700; flex: none; }
+.warnbox { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 9px 11px; font-size: .86rem; }
+#planview:not([hidden]) ~ #toast { top: auto; bottom: calc(env(safe-area-inset-bottom,0px) + 24px); }
+.badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #d9822b; color: #fff; font: 700 11px/20px var(--f-body); text-align: center; padding: 0 5px; }
+.round { position: relative; }
+.pm.alert { box-shadow: 0 0 0 3px #f08a24, 0 1px 5px rgba(0,0,0,.55); }
+.cal-group { border-bottom: 1px solid var(--line); }
+.cal-group summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 10px 2px; cursor: pointer; }
+.cal-group summary::-webkit-details-marker { display: none; }
+.cal-group .t { flex: 1; min-width: 0; }
+.cal-group .t b { display: block; }
+.cal-group .t span { font-size: .8rem; color: var(--muted); }
+.cal-group.done .t b { text-decoration: line-through; color: var(--muted); }
+.chk { width: 30px; height: 30px; border-radius: 9px; border: 2px solid var(--line); background: var(--bg); flex: none; display: grid; place-items: center; font-weight: 700; color: var(--accent-ink); }
+.chk[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+.cal-plants { padding: 0 0 10px 40px; display: flex; flex-direction: column; gap: 6px; }
+.cal-plants .row { justify-content: space-between; flex-wrap: nowrap; }
+.cal-plants .row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 5px 9px; font-weight: 700; font-size: .8rem; flex: none; }
+.months { display: flex; flex-wrap: wrap; gap: 4px; }
+.months button { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); font: 700 .78rem var(--f-body); }
+.months button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tasklist { display: flex; flex-direction: column; gap: 4px; }
+.tasklist .row { justify-content: space-between; flex-wrap: nowrap; font-size: .88rem; }
+.tasklist .m { font: 500 .78rem var(--f-mono); color: var(--muted); }
+.tasklist .x { border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; padding: 2px 6px; }
 .toast { position: fixed; z-index: 1000; left: 50%; top: calc(env(safe-area-inset-top,0px) + 70px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: .88rem; max-width: calc(100% - 32px); }
 @media (prefers-reduced-motion: no-preference) { .sheet { animation: up .22s ease-out; } @keyframes up { from { transform: translateY(30px); opacity: .6 } } }
 </style>
@@ -146,6 +213,8 @@ button { cursor: pointer; }
   <button class="round" id="btn-locate" aria-label="Me suivre sur la carte"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
   <button class="round" id="btn-layer" aria-label="Changer de fond de carte"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/></svg></button>
   <button class="round" id="btn-labels" aria-label="Afficher ou masquer les noms"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>
+  <button class="round" id="btn-cal" aria-label="Calendrier du jardin"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span class="badge" id="cal-badge" hidden></span></button>
+  <button class="round" id="btn-zone" aria-label="Ajouter un aménagement (bac, serre, bâtiment…)"><svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="1"/><path d="M4 10h16"/></svg></button>
   <button class="round" id="btn-home" aria-label="Recentrer sur le terrain"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg></button>
 </div>
 <div class="gpschip" id="gpschip" hidden></div>
@@ -183,7 +252,7 @@ button { cursor: pointer; }
   <div class="grab"></div>
   <h2 id="sp-title">Nouvelle plante</h2>
   <div class="form">
-    <label class="full">Nom courant<input class="field" id="f-nom" placeholder="Pommier, Cassissier, Ail des ours…"></label>
+    <label class="full">Nom courant<input class="field" id="f-nom" list="dl-plantes" autocomplete="off" placeholder="Pommier, Tomate, Ail des ours…"></label>
     <label class="full">Nom latin<input class="field" id="f-latin" placeholder="Malus domestica"></label>
     <label>Catégorie<select class="field" id="f-cat"></select></label>
     <label>Variété / cultivar<input class="field" id="f-var" placeholder="Reinette du Mans"></label>
@@ -192,7 +261,29 @@ button { cursor: pointer; }
     <label id="lbl-date"><span id="date-lbl">Planté le</span><input class="field" id="f-date" type="date"></label>
     <label>Provenance<input class="field" id="f-prov" placeholder="Pépinière, bouture, don…"></label>
     <label>État<select class="field" id="f-etat"></select></label>
+    <label id="lbl-fam">Famille<select class="field" id="f-fam"></select></label>
+    <label id="lbl-fin">Terminé le (arraché, récolté)<input class="field" id="f-fin" type="date"></label>
+    <label id="lbl-qte">Quantité<input class="field" id="f-qte" placeholder="12 godets, 1 plaque…"></label>
+    <div class="warnbox full" id="rot-warn" hidden></div>
     <label class="full">Notes (pollinisateur, exposition, taille, récolte…)<textarea class="field" id="f-notes" rows="3"></textarea></label>
+    <div class="box full" id="prot-box">
+      <strong>Protection et piquet</strong>
+      <div class="row"><label style="flex:1">Anti-chevreuil<select class="field" id="f-prot"><option value="">—</option><option value="aucune">Aucune (pas besoin)</option><option value="poser">À poser</option><option value="ok">En place</option><option value="serree">Trop serrée, à desserrer</option><option value="retirer">À retirer</option></select></label>
+      <label style="flex:1">Piquet repère<select class="field" id="f-piq"><option value="">—</option><option value="oui">Oui</option><option value="non">Non, à poser</option></select></label></div>
+      <div class="row"><label style="flex:1">Vérifiée le<input class="field" id="f-protdate" type="date"></label><button class="ghost" id="btn-protnow" style="align-self:flex-end">Vérifiée aujourd’hui</button></div>
+    </div>
+    <div class="box full" id="task-box">
+      <div class="row between"><strong>Calendrier</strong><button class="ghost" id="btn-task-add">+ Tâche</button></div>
+      <div class="tasklist" id="task-list"></div>
+      <div id="task-form" class="box" hidden>
+        <label>Action<input class="field" id="t-a" placeholder="Vérifier l’attache du tuteur, traiter, récolter…"></label>
+        <div class="small">Tous les ans, ces mois-là :</div>
+        <div class="months" id="t-m"></div>
+        <label style="flex-direction:row;align-items:center;gap:8px;font-weight:400;color:var(--ink)"><input type="checkbox" id="t-once"> Une seule fois, le</label>
+        <input class="field" id="t-date" type="date" hidden>
+        <div class="row"><button class="primary" id="t-ok" style="box-shadow:none;padding:9px 14px">Ajouter la tâche</button><button class="ghost" id="t-cancel">Annuler</button></div>
+      </div>
+    </div>
     <div class="box full">
       <div class="row between"><strong>Photo</strong><span class="small" id="photo-status"></span></div>
       <img class="photo-prev" id="photo-prev" alt="Photo de la plante" hidden>
@@ -204,8 +295,15 @@ button { cursor: pointer; }
     </div>
     <div class="box full">
       <div class="row between"><strong>Emplacement</strong><span class="small" id="pos-status"></span></div>
-      <div class="row"><button class="ghost" id="btn-regps">Reprendre au GPS</button><button class="ghost" id="btn-replace">Placer sur la carte</button><button class="ghost" id="btn-goto">M'y guider</button></div>
-      <label>Latitude, longitude<input class="field mono" id="f-gps" placeholder="45.32700, 1.07470" inputmode="decimal"></label>
+      <div id="pos-gps" class="box" style="border:0;padding:0">
+        <div class="row"><button class="ghost" id="btn-regps">Reprendre au GPS</button><button class="ghost" id="btn-replace">Placer sur la carte</button><button class="ghost" id="btn-goto">M'y guider</button></div>
+        <label>Latitude, longitude<input class="field mono" id="f-gps" placeholder="45.32700, 1.07470" inputmode="decimal"></label>
+      </div>
+      <div id="pos-zone" class="box" style="border:0;padding:0" hidden>
+        <div class="small" id="pos-zone-txt"></div>
+        <div class="row" id="pos-zone-btns"><button class="ghost" id="btn-zmove">Déplacer dans le plan</button><button class="ghost" id="btn-zview">Voir le plan</button></div>
+        <div class="row" id="pos-serre-btns"><button class="ghost" id="btn-repiq">Repiquer vers…</button></div>
+      </div>
     </div>
   </div>
   <div class="actions">
@@ -225,6 +323,7 @@ button { cursor: pointer; }
   <h2 id="sl-title">Catalogue</h2>
   <div class="filters">
     <input class="field" id="q" type="search" placeholder="Chercher : pommier, Ribes…">
+    <label class="small" style="display:flex;align-items:center;gap:6px;flex:0 0 auto"><input type="checkbox" id="show-fin"> Cultures terminées</label>
     <select class="field" id="sort"><option value="nom">A → Z</option><option value="dist">Les plus proches</option><option value="date">Plantées récemment</option><option value="cat">Par catégorie</option></select>
   </div>
   <div class="chips" id="chips" style="margin-bottom:10px"></div>
@@ -253,6 +352,129 @@ button { cursor: pointer; }
   <div class="actions"><button class="ghost" id="btn-menu-close">Fermer</button></div>
 </div>
 
+<div class="zonebar" id="zonebar" hidden>
+  <div class="hint" id="zb-hint"></div>
+  <div id="zb-rect" hidden>
+    <div class="row between"><span>Orientation</span><span class="readout" id="zb-angle-v">0°</span></div>
+    <input type="range" id="zb-angle" min="0" max="179" step="1" value="0" aria-label="Orientation">
+  </div>
+  <div class="readout" id="zb-info"></div>
+  <div class="row" id="zb-free" hidden><button class="ghost" id="zb-addpt">+ Coin sous la croix</button><button class="ghost" id="zb-gpspt">+ Coin au GPS</button><button class="ghost" id="zb-undo">Retirer le dernier</button></div>
+  <div class="row" id="zb-rectgps" hidden><button class="ghost" id="zb-centergps">Je suis au centre (GPS)</button></div>
+  <div class="row"><button class="primary" id="zb-ok">Valider la forme</button><button class="ghost" id="zb-cancel">Annuler</button></div>
+</div>
+
+<div class="sheet" id="sheet-zone" hidden role="dialog" aria-labelledby="sz-title">
+  <div class="grab"></div>
+  <h2 id="sz-title">Nouvel aménagement</h2>
+  <div class="form">
+    <label class="full">Nom<input class="field" id="z-nom" placeholder="Bac 1, Serre, Salle de bain…"></label>
+    <label>Type<select class="field" id="z-type"></select></label>
+    <label>État<select class="field" id="z-statut"><option value="existant">Existant</option><option value="projet">En projet</option></select></label>
+    <div class="box full" id="z-shapebox">
+      <div class="row between"><strong>Forme</strong><span class="small" id="z-shape-info"></span></div>
+      <label>Type de forme<select class="field" id="z-shape"><option value="rect">Rectangle (dimensions connues)</option><option value="cercle">Rond (diamètre connu)</option><option value="free">Forme libre (par les coins)</option></select></label>
+      <div class="row" id="z-dims"><label style="flex:1">Longueur (m)<input class="field mono" id="z-L" inputmode="decimal" placeholder="4"></label><label style="flex:1">Largeur (m)<input class="field mono" id="z-W" inputmode="decimal" placeholder="1"></label></div>
+      <div class="row" id="z-dimc" hidden><label style="flex:1">Diamètre (m)<input class="field mono" id="z-D" inputmode="decimal" placeholder="1.5"></label></div>
+      <div class="row"><button class="ghost" id="z-place">Placer sur la carte</button></div>
+    </div>
+    <label class="full">Notes<textarea class="field" id="z-notes" rows="3" placeholder="Matériaux, contenu du bac, dates…"></textarea></label>
+  </div>
+  <div class="actions">
+    <button class="primary" id="z-save">Enregistrer</button>
+    <button class="ghost" id="z-close">Fermer</button>
+    <button class="ghost danger" id="z-del" hidden>Supprimer</button>
+  </div>
+  <div class="box" id="z-del-confirm" hidden style="margin-top:10px">
+    <div>Supprimer définitivement cet aménagement ?</div>
+    <div class="row"><button class="ghost danger" id="z-del-yes">Oui, supprimer</button><button class="ghost" id="z-del-no">Garder</button></div>
+  </div>
+</div>
+
+<div class="planview" id="planview" hidden>
+  <div class="pv-head">
+    <button class="round" id="pv-back" aria-label="Retour à la carte"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div style="flex:1;min-width:0"><h2 id="pv-title"></h2><div class="small" id="pv-sub"></div></div>
+    <button class="ghost" id="pv-edit">Modifier</button>
+  </div>
+  <div class="pv-tools">
+    <div class="seg" aria-label="Saison"><button id="pv-yprev" aria-label="Année précédente">‹</button><span id="pv-yval"></span><button id="pv-ynext" aria-label="Année suivante">›</button></div>
+    <button class="ghost" id="pv-ghost" aria-pressed="false">Voir l’an passé</button>
+    <div class="seg" id="pv-zoomseg"><button id="pv-zout" aria-label="Dézoomer">−</button><button id="pv-zin" aria-label="Zoomer">+</button></div>
+  </div>
+  <div class="pv-tools" id="pv-addtools">
+    <button class="primary" id="pv-add1">+ Un pied</button>
+    <button class="secondary" id="pv-addrow">+ Une rangée</button>
+  </div>
+  <div class="pv-rot small" id="pv-rot"></div>
+  <div class="pv-mode" id="pv-mode" hidden><span id="pv-modetext"></span><span class="pv-mbtns"><button id="pv-switch">Faire une rangée</button><button id="pv-undo">Annuler le dernier</button><button id="pv-modeend">Terminer</button></span></div>
+  <div class="pv-canvas" id="pv-canvas"></div>
+  <div class="pv-list" id="pv-list"></div>
+</div>
+
+<div class="sheet" id="sheet-pick" hidden role="dialog" aria-labelledby="pk-title">
+  <div class="grab"></div>
+  <h2 id="pk-title">Quelle plante ?</h2>
+  <div class="form">
+    <label class="full">Plante<input class="field" id="pk-nom" list="dl-plantes" autocomplete="off" placeholder="Tomate, Laitue, Ail…"></label>
+    <label>Variété<input class="field" id="pk-var" placeholder="Cœur de bœuf, Batavia…"></label>
+    <label>Famille<select class="field" id="pk-fam"></select></label>
+    <div class="warnbox full" id="pk-rot" hidden></div>
+  </div>
+  <div class="actions"><button class="primary" id="pk-ok">Placer sur le plan</button><button class="ghost" id="pk-cancel">Annuler</button></div>
+</div>
+
+<div class="sheet" id="sheet-row" hidden role="dialog" aria-labelledby="sr-title">
+  <div class="grab"></div>
+  <h2 id="sr-title">Nouvelle rangée</h2>
+  <div class="form">
+    <label>Espacement (cm)<input class="field mono" id="r-esp" inputmode="numeric" value="30"></label>
+    <label>Planté le<input class="field" id="r-date" type="date"></label>
+    <div class="full small" id="r-info"></div>
+    <div class="warnbox full" id="r-warn" hidden></div>
+  </div>
+  <div class="actions"><button class="primary" id="r-ok">Créer la rangée</button><button class="ghost" id="r-cancel">Annuler</button></div>
+</div>
+
+<div class="sheet" id="sheet-repiq" hidden role="dialog" aria-labelledby="rq-title">
+  <div class="grab"></div>
+  <h2 id="rq-title">Repiquer</h2>
+  <div class="form">
+    <label class="full">Vers<select class="field" id="rq-zone"></select></label>
+    <label class="full" style="flex-direction:row;align-items:center;gap:8px;font-weight:400;color:var(--ink)"><input type="checkbox" id="rq-all"> Tout est repiqué : retirer de la serre</label>
+    <div class="full small">Ensuite, touchez le plan pour placer chaque pied, ou faites une rangée. Chaque plant gardera la date de semis.</div>
+  </div>
+  <div class="actions"><button class="primary" id="rq-ok">Ouvrir le plan</button><button class="ghost" id="rq-cancel">Annuler</button></div>
+</div>
+
+<div class="planview serre" id="calview" hidden>
+  <div class="pv-head">
+    <button class="round" id="cal-back" aria-label="Retour à la carte"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div style="flex:1;min-width:0"><h2>Calendrier du jardin</h2><div class="small" id="cal-sub"></div></div>
+  </div>
+  <div class="pv-tools">
+    <div class="seg"><button id="cal-prev" aria-label="Mois précédent">‹</button><span id="cal-month" style="min-width:8.5em;text-align:center"></span><button id="cal-next" aria-label="Mois suivant">›</button></div>
+    <button class="ghost" id="cal-ics">Exporter vers Google Agenda</button>
+  </div>
+  <div class="pv-list" id="cal-list"></div>
+</div>
+
+<div class="sheet" id="sheet-ics" hidden role="dialog" aria-labelledby="ics-title">
+  <div class="grab"></div>
+  <h2 id="ics-title">Rappels du lundi</h2>
+  <div class="form">
+    <div class="full small">L’appli prépare un fichier avec un rappel <b>chaque lundi à 8 h</b> pendant un an, qui liste les tâches du mois encore à faire. Le premier lundi du mois s’ajoute la tournée des protections.</div>
+    <div class="full small" id="ics-info"></div>
+    <div class="full box">
+      <strong>Pour l’importer (une fois par an, ou après beaucoup d’ajouts)</strong>
+      <div class="small">1. Sur calendar.google.com (sur téléphone : menu ⋮ de Chrome, « Version ordinateur »), créez un agenda « Jardin La Joutade » : Paramètres › Ajouter un agenda › Créer un agenda.<br>2. Paramètres › Importer et exporter › Importer : choisissez le fichier, puis l’agenda « Jardin La Joutade ».<br>3. Dans les paramètres de cet agenda, réglez « Notifications des événements » sur « 0 minute avant », pour être prévenue à 8 h.<br>Pour mettre à jour : supprimez l’agenda « Jardin La Joutade », recréez-le, puis réimportez.</div>
+    </div>
+  </div>
+  <div class="actions"><button class="primary" id="ics-go">Créer le fichier</button><button class="ghost" id="ics-close">Fermer</button></div>
+</div>
+
+<datalist id="dl-plantes"></datalist>
+
 <div class="toast" id="toast" hidden></div>
 
 <script src="leaflet.js"></script>
@@ -264,6 +486,7 @@ const CATS = [
   { id: 'inconnu', label: 'Arbre inconnu', color: '#d9b8f2' },
   { id: 'petit', label: 'Petit fruitier', color: '#8e3b6e' },
   { id: 'vivace', label: 'Vivace comestible', color: '#4f8a3a' },
+  { id: 'annuel', label: 'Légume annuel', color: '#e07a3f' },
   { id: 'legume', label: 'Légume perpétuel', color: '#c79a1e' },
   { id: 'arom', label: 'Aromatique', color: '#2a8a80' },
   { id: 'foret', label: 'Arbre forestier', color: '#5a4a32' },
@@ -272,6 +495,45 @@ const CATS = [
   { id: 'couvre', label: 'Couvre-sol', color: '#6f8f22' },
   { id: 'autre', label: 'Autre', color: '#757a70' },
 ];
+const FAMS = [
+  { id: 'sol', label: 'Solanacées', color: '#d0452f', rot: 4 },
+  { id: 'cuc', label: 'Cucurbitacées', color: '#e39b1b', rot: 3 },
+  { id: 'bra', label: 'Brassicacées (choux)', color: '#5c7fb8', rot: 3 },
+  { id: 'fab', label: 'Fabacées (légumineuses)', color: '#7a9a2c', rot: 3 },
+  { id: 'ast', label: 'Astéracées (salades)', color: '#5db36a', rot: 2 },
+  { id: 'api', label: 'Apiacées (carotte…)', color: '#c2709f', rot: 3 },
+  { id: 'ama', label: 'Alliacées (ail, oignon)', color: '#9a6fc9', rot: 3 },
+  { id: 'che', label: 'Amaranthacées (bette…)', color: '#b3365b', rot: 3 },
+  { id: 'poa', label: 'Poacées (maïs)', color: '#c9b33a', rot: 2 },
+  { id: 'val', label: 'Valérianacées (mâche)', color: '#8fbf5a', rot: 2 },
+  { id: 'lam', label: 'Lamiacées (aromatiques)', color: '#3a9a8c', rot: 0 },
+  { id: 'ros', label: 'Rosacées (fraisier)', color: '#e05a7a', rot: 0 },
+  { id: 'pol', label: 'Polygonacées (oseille…)', color: '#8a5a3c', rot: 0 },
+  { id: 'aut', label: 'Autre', color: '#8a8a8a', rot: 0 },
+];
+const famOf = id => FAMS.find(f => f.id === id) || null;
+const VEG = [
+  ['tomate','sol','Solanum lycopersicum'],['aubergine','sol','Solanum melongena'],['poivron','sol','Capsicum annuum'],['piment','sol','Capsicum annuum'],['pomme de terre','sol','Solanum tuberosum'],['physalis','sol','Physalis peruviana'],
+  ['courge','cuc','Cucurbita sp.'],['courgette','cuc','Cucurbita pepo'],['potiron','cuc','Cucurbita maxima'],['potimarron','cuc','Cucurbita maxima'],['butternut','cuc','Cucurbita moschata'],['citrouille','cuc','Cucurbita pepo'],['patisson','cuc','Cucurbita pepo'],['concombre','cuc','Cucumis sativus'],['cornichon','cuc','Cucumis sativus'],['melon','cuc','Cucumis melo'],['pasteque','cuc','Citrullus lanatus'],
+  ['chou','bra','Brassica oleracea'],['brocoli','bra','Brassica oleracea'],['chou fleur','bra','Brassica oleracea'],['chou kale','bra','Brassica oleracea'],['chou perpetuel','bra','Brassica oleracea'],['navet','bra','Brassica rapa'],['radis','bra','Raphanus sativus'],['roquette','bra','Eruca sativa'],['moutarde','bra','Brassica juncea'],['rutabaga','bra','Brassica napus'],['cresson','bra','Nasturtium officinale'],
+  ['haricot','fab','Phaseolus vulgaris'],['pois','fab','Pisum sativum'],['petit pois','fab','Pisum sativum'],['feve','fab','Vicia faba'],['lentille','fab','Lens culinaris'],['pois chiche','fab','Cicer arietinum'],
+  ['laitue','ast','Lactuca sativa'],['salade','ast','Lactuca sativa'],['batavia','ast','Lactuca sativa'],['chicoree','ast','Cichorium intybus'],['endive','ast','Cichorium intybus'],['scarole','ast','Cichorium endivia'],['frisee','ast','Cichorium endivia'],['artichaut','ast','Cynara cardunculus'],['cardon','ast','Cynara cardunculus'],['topinambour','ast','Helianthus tuberosus'],['tournesol','ast','Helianthus annuus'],['salsifis','ast','Tragopogon porrifolius'],['souci','ast','Calendula officinalis'],
+  ['carotte','api','Daucus carota'],['panais','api','Pastinaca sativa'],['celeri','api','Apium graveolens'],['persil','api','Petroselinum crispum'],['fenouil','api','Foeniculum vulgare'],['coriandre','api','Coriandrum sativum'],['aneth','api','Anethum graveolens'],['cerfeuil','api','Anthriscus cerefolium'],
+  ['ail','ama','Allium sativum'],['oignon','ama','Allium cepa'],['echalote','ama','Allium cepa'],['poireau','ama','Allium porrum'],['ciboulette','ama','Allium schoenoprasum'],['rocambole','ama','Allium × proliferum'],['poireau perpetuel','ama','Allium ampeloprasum'],['ail des ours','ama','Allium ursinum'],
+  ['betterave','che','Beta vulgaris'],['blette','che','Beta vulgaris'],['bette','che','Beta vulgaris'],['epinard','che','Spinacia oleracea'],['arroche','che','Atriplex hortensis'],
+  ['mais','poa','Zea mays'],['mache','val','Valerianella locusta'],
+  ['basilic','lam','Ocimum basilicum'],['menthe','lam','Mentha sp.'],['thym','lam','Thymus vulgaris'],['sauge','lam','Salvia officinalis'],['romarin','lam','Salvia rosmarinus'],['origan','lam','Origanum vulgare'],['melisse','lam','Melissa officinalis'],['lavande','lam','Lavandula angustifolia'],['sarriette','lam','Satureja hortensis'],
+  ['fraisier','ros','Fragaria × ananassa'],['fraise','ros','Fragaria × ananassa'],
+  ['oseille','pol','Rumex acetosa'],['rhubarbe','pol','Rheum rhabarbarum'],
+  ['capucine','aut','Tropaeolum majus'],['patate douce','aut','Ipomoea batatas'],
+];
+const VEG_NAMES = ['Tomate','Aubergine','Poivron','Piment','Pomme de terre','Courge','Courgette','Potimarron','Butternut','Concombre','Melon','Chou','Brocoli','Chou-fleur','Chou kale','Navet','Radis','Roquette','Haricot','Petit pois','Fève','Laitue','Batavia','Chicorée','Scarole','Artichaut','Carotte','Panais','Céleri','Persil','Fenouil','Coriandre','Ail','Oignon','Échalote','Poireau','Ciboulette','Oignon rocambole','Poireau perpétuel','Betterave','Blette','Épinard','Maïs','Mâche','Basilic','Menthe','Thym','Sauge','Fraisier','Oseille','Rhubarbe','Capucine','Patate douce'];
+const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[-’']/g, ' ').replace(/\s+/g, ' ').trim();
+function vegFor(nom) {
+  const n = ' ' + norm(nom) + ' '; let best = null;
+  for (const v of VEG) if (n.includes(' ' + v[0] + ' ') && (!best || v[0].length > best[0].length)) best = v;
+  return best ? { fam: best[1], latin: best[2] } : null;
+}
 const ETATS = [{ id: 'ok', label: 'En forme' }, { id: 'surv', label: 'À surveiller' }, { id: 'malade', label: 'Malade' }, { id: 'mort', label: 'Morte' }];
 const catOf = id => CATS.find(c => c.id === id) || CATS[CATS.length - 1];
 const etatOf = id => ETATS.find(e => e.id === id) || ETATS[0];
@@ -282,8 +544,8 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const idb = (() => {
   let dbp;
   const open = () => dbp || (dbp = new Promise((res, rej) => {
-    const r = indexedDB.open('carnet-joutade', 1);
-    r.onupgradeneeded = () => { r.result.createObjectStore('plantes', { keyPath: 'id' }); r.result.createObjectStore('photos'); };
+    const r = indexedDB.open('carnet-joutade', 3);
+    r.onupgradeneeded = () => { const d = r.result, has = n => d.objectStoreNames.contains(n); if (!has('plantes')) d.createObjectStore('plantes', { keyPath: 'id' }); if (!has('photos')) d.createObjectStore('photos'); if (!has('zones')) d.createObjectStore('zones', { keyPath: 'id' }); if (!has('meta')) d.createObjectStore('meta'); };
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   }));
   const tx = async (store, mode, fn) => { const d = await open(); return new Promise((res, rej) => { const t = d.transaction(store, mode); const s = t.objectStore(store); const out = fn(s); t.oncomplete = () => res(out && out.result !== undefined ? out.result : out); t.onerror = () => rej(t.error); }); };
@@ -295,6 +557,11 @@ const idb = (() => {
     putPhoto: (id, blob) => tx('photos', 'readwrite', s => s.put(blob, id)),
     getPhoto: id => tx('photos', 'readonly', s => s.get(id)),
     delPhoto: id => tx('photos', 'readwrite', s => s.delete(id)),
+    zones: () => tx('zones', 'readonly', s => s.getAll()),
+    putZone: z => tx('zones', 'readwrite', s => s.put(z)),
+    delZone: id => tx('zones', 'readwrite', s => s.delete(id)),
+    metaAll: async () => { const d = await open(); return new Promise((res, rej) => { const out = {}, t = d.transaction('meta'), c = t.objectStore('meta').openCursor(); c.onsuccess = () => { const k = c.result; if (k) { out[k.key] = k.value; k.continue(); } }; t.oncomplete = () => res(out); t.onerror = () => rej(t.error); }); },
+    setMeta: (k, v) => tx('meta', 'readwrite', s => v == null ? s.delete(k) : s.put(v, k)),
   };
 })();
 const photoUrls = new Map();
@@ -326,15 +593,17 @@ const bases = [{ name: 'Photo aérienne + cadastre', layers: [ortho, cadastre] }
 function applyBase() { [ortho, osm, cadastre].forEach(l => map.removeLayer(l)); bases[baseIdx].layers.forEach(l => l.addTo(map)); }
 applyBase();
 L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+const zoneLayer = L.layerGroup().addTo(map);
+const draftLayer = L.layerGroup().addTo(map);
 const plantLayer = L.layerGroup().addTo(map);
 const meLayer = L.layerGroup().addTo(map);
 
 function renderMarkers() {
   plantLayer.clearLayers();
   for (const p of plants) {
-    if (p.lat == null || hiddenCats.has(p.cat)) continue;
+    if (p.lat == null || p.zoneId || hiddenCats.has(p.cat)) continue;
     const c = catOf(p.cat);
-    const icon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: `<div class="pm${p.etat === 'mort' ? ' dead' : ''}${draft && draft.id === p.id ? ' sel' : ''}" style="background:${c.color}"></div>` });
+    const icon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: `<div class="pm${p.etat === 'mort' ? ' dead' : ''}${needsAttention(p) ? ' alert' : ''}${draft && draft.id === p.id ? ' sel' : ''}" style="background:${c.color}"></div>` });
     const m = L.marker([p.lat, p.lng], { icon, keyboard: true, title: p.nom }).addTo(plantLayer);
     m.bindTooltip(esc(p.nom) + (p.variete ? ' · ' + esc(p.variete) : ''), { permanent: true, direction: 'right', offset: [10, 0], className: 'lbl' });
     m.on('click', () => openPlant(p));
@@ -461,8 +730,8 @@ $('f-close').onclick = () => { finderId = null; $('finder').hidden = true; };
 let toastT;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
 function openSheet(id) { closeSheets(true); $('backdrop').hidden = false; $(id).hidden = false; $(id).scrollTop = 0; }
-function closeSheets(keepBackdrop) { ['sheet-plant', 'sheet-list', 'sheet-menu', 'sheet-capture'].forEach(i => $(i).hidden = true); if (!keepBackdrop) $('backdrop').hidden = true; }
-$('backdrop').onclick = () => { if (!$('sheet-capture').hidden) return; closeSheets(); draft = null; renderMarkers(); };
+function closeSheets(keepBackdrop) { ['sheet-plant', 'sheet-list', 'sheet-menu', 'sheet-capture', 'sheet-zone', 'sheet-row', 'sheet-repiq', 'sheet-pick', 'sheet-ics'].forEach(i => $(i).hidden = true); if (!keepBackdrop) $('backdrop').hidden = true; }
+$('backdrop').onclick = () => { if (!$('sheet-capture').hidden) return; closeSheets(); draft = null; zdraft = null; draftLayer.clearLayers(); renderMarkers(); };
 const fmtLL = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 function parseLatLng(s) {
   const m = String(s || '').match(/(-?\d+(?:[.,]\d+)?)[\s,;]+(-?\d+(?:[.,]\d+)?)/); if (!m) return null;
@@ -476,7 +745,7 @@ function since(d) {
   const y = Math.floor(days / 365.25); return `depuis ${y} an${y > 1 ? 's' : ''}`;
 }
 function renderStats() {
-  const n = plants.length, sp = new Set(plants.map(p => (p.latin || p.nom || '').trim().toLowerCase()).filter(Boolean)).size;
+  const act = plants.filter(p => !isFinished(p)), n = act.length, sp = new Set(act.map(p => (p.latin || p.nom || '').trim().toLowerCase()).filter(Boolean)).size;
   $('stats').textContent = n ? `${n} plante${n > 1 ? 's' : ''} · ${sp} espèce${sp > 1 ? 's' : ''}` : 'Carnet vide : allez au pied d’une plante';
 }
 
@@ -487,12 +756,26 @@ async function fillPlantSheet() {
   $('f-nom').value = p.nom || ''; $('f-latin').value = p.latin || ''; $('f-cat').value = p.cat || 'arbre';
   $('f-var').value = p.variete || ''; $('f-pg').value = p.portegreffe || ''; $('f-date').value = p.date || ''; $('f-origine').value = p.origine || 'plantee'; syncOrigine();
   $('f-prov').value = p.provenance || ''; $('f-etat').value = p.etat || 'ok'; $('f-notes').value = p.notes || '';
+  $('f-prot').value = p.protection || ''; $('f-piq').value = p.piquet || ''; $('f-protdate').value = p.protVerif || ''; $('prot-box').hidden = !!p.zoneId; $('task-form').hidden = true; renderTaskList();
+  $('f-fam').value = p.famille || ''; $('f-fam').dataset.manual = p.famille ? '1' : ''; $('f-latin').dataset.auto = ''; $('f-fin').value = p.dateFin || ''; $('f-qte').value = p.qte || '';
+  const zp = p.zoneId ? zones.find(z => z.id === p.zoneId) : null, inSerre = zp && zp.type === 'serre';
+  $('lbl-fin').hidden = !zp; $('lbl-qte').hidden = !inSerre;
+  $('date-lbl').textContent = inSerre ? 'Semé le' : $('date-lbl').textContent;
   $('btn-del').hidden = !p.id; $('del-confirm').hidden = true; $('photo-status').textContent = '';
   await updateBits();
 }
 async function updateBits() {
   const p = draft;
   $('lbl-pg').hidden = $('f-cat').value !== 'arbre';
+  $('lbl-fam').hidden = !(p.zoneId || ['annuel', 'legume', 'vivace', 'arom'].includes($('f-cat').value));
+  const zp = p.zoneId ? zones.find(z => z.id === p.zoneId) : null;
+  $('pos-gps').hidden = !!zp; $('pos-zone').hidden = !zp;
+  if (zp) {
+    const serre = zp.type === 'serre';
+    $('pos-zone-btns').hidden = serre; $('pos-serre-btns').hidden = !serre || !p.id || !!p.dateFin;
+    $('pos-zone-txt').textContent = serre ? `Dans « ${zp.nom} »` : p.zx != null ? `Dans « ${zp.nom} » · à ${fmtM(p.zx)} du bout gauche, ${fmtM(p.zy)} du bord du haut (vue plan)` : `Dans « ${zp.nom} »`;
+  }
+  rotCheck();
   $('f-gps').value = p.lat != null ? fmtLL(p.lat, p.lng) : '';
   $('pos-status').textContent = p.lat == null ? 'pas encore placée' : p.acc ? `GPS ± ${p.acc < 10 ? p.acc.toFixed(1) : Math.round(p.acc)} m` : 'placée à la main';
   $('btn-goto').hidden = p.lat == null || !p.id;
@@ -504,7 +787,10 @@ function readForm() {
     nom: $('f-nom').value.trim(), latin: $('f-latin').value.trim(), cat: $('f-cat').value, variete: $('f-var').value.trim(),
     portegreffe: $('f-cat').value === 'arbre' ? $('f-pg').value.trim() : '', date: $('f-date').value, origine: $('f-origine').value, provenance: $('f-prov').value.trim(),
     etat: $('f-etat').value, notes: $('f-notes').value.trim(),
+    famille: $('f-fam').value, dateFin: $('f-fin').value, qte: $('f-qte').value.trim(),
   });
+  if (!draft.zoneId) Object.assign(draft, { protection: $('f-prot').value, piquet: $('f-piq').value, protVerif: $('f-protdate').value });
+  if (draft.zoneId) return;
   const ll = parseLatLng($('f-gps').value);
   if (ll && (draft.lat == null || Math.abs(ll.lat - draft.lat) > 6e-7 || Math.abs(ll.lng - draft.lng) > 6e-7)) { draft.lat = ll.lat; draft.lng = ll.lng; draft.acc = null; }
   if (!ll) { draft.lat = null; draft.lng = null; draft.acc = null; }
@@ -517,7 +803,10 @@ async function savePlant() {
   if (isNew) draft.id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   draft.updatedAt = new Date().toISOString(); draft.createdAt = draft.createdAt || draft.updatedAt;
   const rec = { ...draft }; delete rec._reopen;
+  if (rec.zoneId && rec.zx != null) { const z = zones.find(x => x.id === rec.zoneId); if (z) { const g = toGeo(zoneFrame(z), rec.zx, rec.zy); rec.lat = g[0]; rec.lng = g[1]; rec.acc = null; } }
+  for (const k of Object.keys(rec)) if (rec[k] === '' && !['nom'].includes(k)) delete rec[k];
   await idb.put(rec);
+  if (rec.zoneId) pvLast = { nom: rec.nom, latin: rec.latin, famille: rec.famille, cat: rec.cat, variete: rec.variete };
   const i = plants.findIndex(x => x.id === rec.id); if (i >= 0) plants[i] = rec; else plants.push(rec);
   draft = null; closeSheets(); renderAll(); toast(isNew ? 'Plante ajoutée' : 'Fiche mise à jour');
 }
@@ -531,7 +820,7 @@ $('btn-del-yes').onclick = async () => {
 };
 function syncOrigine() { $('date-lbl').textContent = $('f-origine').value === 'spontanee' ? 'Repérée le (facultatif)' : 'Planté le'; }
 $('f-origine').onchange = () => { if ($('f-origine').value === 'spontanee' && draft && !draft.id) $('f-date').value = ''; syncOrigine(); };
-$('f-cat').onchange = () => $('lbl-pg').hidden = $('f-cat').value !== 'arbre';
+$('f-cat').onchange = () => { $('lbl-pg').hidden = $('f-cat').value !== 'arbre'; $('lbl-fam').hidden = !(draft && draft.zoneId || ['annuel', 'legume', 'vivace', 'arom'].includes($('f-cat').value)); };
 $('btn-regps').onclick = () => { readForm(); draft._reopen = true; startCapture(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: r.acc }); delete draft._reopen; updateBits(); openSheet('sheet-plant'); }); };
 $('btn-replace').onclick = () => { readForm(); startPlace(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: null }); updateBits(); openSheet('sheet-plant'); }, draft.lat != null ? [draft.lat, draft.lng] : null); };
 $('btn-goto').onclick = () => { readForm(); const p = plants.find(x => x.id === draft.id); if (p) startFinder(p); };
@@ -574,25 +863,32 @@ function renderChips() {
 $('chips').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; const c = b.dataset.cat; hiddenCats.has(c) ? hiddenCats.delete(c) : hiddenCats.add(c); renderChips(); renderList(); renderMarkers(); };
 async function renderList() {
   const q = $('q').value.trim().toLowerCase(), sort = $('sort').value;
-  let rows = plants.filter(p => !hiddenCats.has(p.cat) && (!q || [p.nom, p.latin, p.variete, p.notes, p.provenance, catOf(p.cat).label].join(' ').toLowerCase().includes(q)));
+  const showFin = $('show-fin').checked;
+  let rows = plants.filter(p => (showFin || !isFinished(p)) && !hiddenCats.has(p.cat) && (!q || [p.nom, p.latin, p.variete, p.notes, p.provenance, catOf(p.cat).label].join(' ').toLowerCase().includes(q)));
   const dist = p => me && p.lat != null ? distBear(me, p).d : Infinity;
   const by = { nom: (a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'), date: (a, b) => (b.date || '').localeCompare(a.date || ''), dist: (a, b) => dist(a) - dist(b), cat: (a, b) => CATS.indexOf(catOf(a.cat)) - CATS.indexOf(catOf(b.cat)) || (a.nom || '').localeCompare(b.nom || '', 'fr') };
   rows.sort(by[sort]);
-  if (!rows.length) { $('list').innerHTML = `<div class="nores">${plants.length ? 'Aucune plante ne correspond.' : 'Rien encore. Allez au pied d’une plante et touchez « Je suis au pied d’une plante ».'}</div>`; return; }
-  const html = [];
+  if (!rows.length) { $('list').innerHTML = `<div class="nores">${plants.length ? 'Aucune plante ne correspond.' : 'Rien encore. Allez au pied d’une plante et touchez « Au pied d’une plante ».'}</div>` + zonesListHtml(q); return; }
+  const html = [], groups = new Map(), items = [];
   for (const p of rows) {
+    if (p.zoneId) { const k = [p.zoneId, p.nom, p.variete, p.date, p.dateFin].join('|'); if (groups.has(k)) { groups.get(k).n++; continue; } const it = { p, n: 1 }; groups.set(k, it); items.push(it); }
+    else items.push({ p, n: 1 });
+  }
+  for (const { p, n } of items) {
     const c = catOf(p.cat), e = etatOf(p.etat), u = await photoUrl(p.photoId);
     const meta = [c.label, p.variete && `« ${esc(p.variete)} »`, p.portegreffe && `sur ${esc(p.portegreffe)}`, p.origine === 'spontanee' ? (p.date ? `pousse spontanée, repérée le ${fmtDate(p.date)}` : 'pousse spontanée') : p.date && `planté le ${fmtDate(p.date)} (${since(p.date)})`].filter(Boolean).join(' · ');
-    let where = p.lat == null ? 'pas encore placée' : '';
-    if (p.lat != null && me) { const { d, brg } = distBear(me, p); where = `à ${d < 10 ? d.toFixed(1) : Math.round(d)} m · ${dirName(brg)}`; }
-    html.push(`<button class="tag" data-id="${esc(p.id)}" style="--c:${c.color}"><span class="notch"></span><span class="body"><div class="name">${esc(p.nom)}</div>${p.latin ? `<div class="latin">${esc(p.latin)}</div>` : ''}<div class="meta">${meta}</div>${where ? `<div class="dist">${where}</div>` : ''}</span><span class="side2"><span class="state ${e.id}">${e.label}</span>${u ? `<img src="${u}" alt="">` : ''}</span></button>`);
+    let where = p.lat == null && !p.zoneId ? 'pas encore placée' : '';
+    const zp = p.zoneId && zones.find(z => z.id === p.zoneId);
+    if (zp) where = (zp.type === 'serre' ? `dans la ${esc(zp.nom)}` : `dans ${esc(zp.nom)}`) + (p.qte ? ` · ${esc(p.qte)}` : '') + (p.dateFin ? ` · terminé le ${fmtDate(p.dateFin)}` : '');
+    else if (p.lat != null && me) { const { d, brg } = distBear(me, p); where = `à ${d < 10 ? d.toFixed(1) : Math.round(d)} m · ${dirName(brg)}`; }
+    html.push(`<button class="tag" data-id="${esc(p.id)}" style="--c:${c.color}"><span class="notch"></span><span class="body"><div class="name">${esc(p.nom)}${n > 1 ? ` <span class="small">×${n}</span>` : ''}</div>${p.latin ? `<div class="latin">${esc(p.latin)}</div>` : ''}<div class="meta">${meta}</div>${where ? `<div class="dist">${where}</div>` : ''}</span><span class="side2"><span class="state ${e.id}">${e.label}</span>${u ? `<img src="${u}" alt="">` : ''}</span></button>`);
   }
-  $('list').innerHTML = html.join('');
+  $('list').innerHTML = html.join('') + zonesListHtml(q);
 }
 $('btn-list').onclick = () => { renderChips(); renderList(); openSheet('sheet-list'); };
 $('btn-list-close').onclick = () => closeSheets();
-$('list').onclick = e => { const t = e.target.closest('.tag'); if (!t) return; const p = plants.find(x => x.id === t.dataset.id); if (!p) return; if (p.lat != null) map.setView([p.lat, p.lng], Math.max(map.getZoom(), 20)); openPlant(p); };
-$('q').oninput = renderList; $('sort').oninput = () => { if ($('sort').value === 'dist') startWatch(); renderList(); };
+$('list').onclick = e => { const zt = e.target.closest('.ztag'); if (zt) { const z = zones.find(x => x.id === zt.dataset.zid); if (z) { if (z.pts && z.pts.length) map.fitBounds(L.latLngBounds(z.pts).pad(.6), { maxZoom: 21 }); closeSheets(); openZoneView(z); } return; } const t = e.target.closest('.tag'); if (!t) return; const p = plants.find(x => x.id === t.dataset.id); if (!p) return; if (p.zoneId) { const z = zones.find(x => x.id === p.zoneId); if (z) { closeSheets(); openPlanView(z); pvYear = startYear(p); pvSel = p.id; renderPlan(); return; } } if (p.lat != null) map.setView([p.lat, p.lng], Math.max(map.getZoom(), 20)); openPlant(p); };
+$('q').oninput = renderList; $('show-fin').onchange = renderList; $('sort').oninput = () => { if ($('sort').value === 'dist') startWatch(); renderList(); };
 
 /* ===== Side buttons ===== */
 $('btn-layer').onclick = () => { baseIdx = (baseIdx + 1) % bases.length; applyBase(); toast(bases[baseIdx].name); };
@@ -613,15 +909,15 @@ $('btn-export').onclick = async () => {
   $('backup-status').textContent = 'Préparation…';
   const photos = {};
   for (const p of plants) if (p.photoId) { const b = await idb.getPhoto(p.photoId); if (b) photos[p.photoId] = await blobToB64(b); }
-  const data = JSON.stringify({ app: 'carnet-joutade', version: 1, exporte: new Date().toISOString(), plantes: plants, photos });
+  const data = JSON.stringify({ app: 'carnet-joutade', version: 1, exporte: new Date().toISOString(), plantes: plants, zones, meta, photos });
   const ok = await downloadFile(`carnet-joutade-${new Date().toISOString().slice(0, 10)}.json`, new Blob([data], { type: 'application/json' }));
   if (ok) { try { localStorage.setItem('lastBackup', new Date().toISOString()); } catch (e) {} }
   $('backup-status').textContent = ok ? lastBackupText() : 'Export annulé.';
 };
 $('btn-csv').onclick = () => {
-  const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['origine', 'Origine'], ['date', 'Planté / repéré le'], ['provenance', 'Provenance'], ['etat', 'État'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
+  const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['origine', 'Origine'], ['date', 'Planté / repéré le'], ['provenance', 'Provenance'], ['etat', 'État'], ['famille', 'Famille'], ['zone', 'Emplacement'], ['dateFin', 'Terminé le'], ['qte', 'Quantité'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
   const cell = v => { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : k === 'origine' ? (p.origine === 'spontanee' ? 'Pousse spontanée' : 'Plantée') : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
+  const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : k === 'origine' ? (p.origine === 'spontanee' ? 'Pousse spontanée' : 'Plantée') : k === 'famille' ? (famOf(p.famille) || {}).label : k === 'zone' ? ((zones.find(z => z.id === p.zoneId) || {}).nom || '') + (p.zx != null ? ` (${p.zx.toFixed(2)} m ; ${p.zy.toFixed(2)} m)` : '') : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
   downloadFile('carnet-joutade.csv', new Blob(['﻿' + [cols.map(c => c[1]).join(';'), ...rows].join('\n')], { type: 'text/csv' }));
 };
 $('btn-import').onclick = () => $('f-import').click();
@@ -632,7 +928,9 @@ $('f-import').onchange = async e => {
     let n = 0;
     for (const [id, b64] of Object.entries(data.photos || {})) { const b = await (await fetch(b64)).blob(); await idb.putPhoto(id, b); }
     for (const p of list) { if (!p.id || !p.nom || p.exemple) continue; await idb.put(p); n++; }
-    plants = await idb.all(); renderAll();
+    for (const z of (data.zones || [])) { if (z.id && z.pts) await idb.putZone(z); }
+    for (const [k, v] of Object.entries(data.meta || {})) { await idb.setMeta(k, v); meta[k] = v; }
+    plants = await idb.all(); zones = await idb.zones(); renderAll();
     $('backup-status').textContent = `${n} fiche${n > 1 ? 's' : ''} importée${n > 1 ? 's' : ''}.`;
   } catch (err) { $('backup-status').textContent = 'Ce fichier n’est pas une sauvegarde du carnet.'; }
 };
@@ -656,12 +954,763 @@ $('btn-precache').onclick = async () => {
   $('offline-status').textContent = fail ? `Carte téléchargée (${fail} morceaux manquants, réessayez avec du réseau).` : 'Carte du terrain disponible hors ligne.';
 };
 
+/* ===== Aménagements (zones) ===== */
+const ZTYPES = [
+  { id: 'bac', label: 'Bac de culture', color: '#9a6a36' },
+  { id: 'serre', label: 'Serre', color: '#5fb4d0' },
+  { id: 'batiment', label: 'Bâtiment / abri', color: '#c4553f' },
+  { id: 'parking', label: 'Parking / accès', color: '#8f8f8f' },
+  { id: 'potager', label: 'Bande / planche de culture', color: '#7aa63a' },
+  { id: 'eau', label: 'Point d’eau / mare', color: '#2f7fd1' },
+  { id: 'zautre', label: 'Autre', color: '#b9a46a' },
+];
+const ztypeOf = id => ZTYPES.find(t => t.id === id) || ZTYPES[ZTYPES.length - 1];
+let zones = [];
+let zdraft = null;      // zone being edited
+let zmode = null;       // 'rect' | 'free'
+let zwork = null;       // working geometry while on the map
+const M_LAT = 110574, mLng = lat => 111320 * Math.cos(lat * Math.PI / 180);
+function rectPts(c, L_, W_, ang) {
+  const t = ang * Math.PI / 180, ux = Math.sin(t), uy = Math.cos(t), vx = Math.cos(t), vy = -Math.sin(t);
+  const k = mLng(c.lat);
+  return [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([a, b]) => {
+    const e = a * ux * L_ / 2 + b * vx * W_ / 2, n = a * uy * L_ / 2 + b * vy * W_ / 2;
+    return [c.lat + n / M_LAT, c.lng + e / k];
+  });
+}
+function areaM2(pts) {
+  if (!pts || pts.length < 3) return 0;
+  const lat0 = pts[0][0], k = mLng(lat0); let a = 0;
+  const xy = pts.map(([la, ln]) => [(ln - pts[0][1]) * k, (la - lat0) * M_LAT]);
+  for (let i = 0; i < xy.length; i++) { const [x1, y1] = xy[i], [x2, y2] = xy[(i + 1) % xy.length]; a += x1 * y2 - x2 * y1; }
+  return Math.abs(a) / 2;
+}
+const fmtArea = a => a < 10 ? a.toFixed(1).replace('.', ',') + ' m²' : Math.round(a) + ' m²';
+function zoneStyle(z) {
+  const c = ztypeOf(z.type).color, proj = z.statut === 'projet';
+  return { color: c, weight: 2.5, fillColor: c, fillOpacity: proj ? .1 : .35, dashArray: proj ? '6 6' : null };
+}
+function renderZones() {
+  zoneLayer.clearLayers();
+  for (const z of zones) {
+    if (!z.pts || z.pts.length < 3) continue;
+    const pg = L.polygon(z.pts, zoneStyle(z)).addTo(zoneLayer);
+    const cnt = plants.filter(p => p.zoneId === z.id && !isFinished(p)).length;
+    pg.bindTooltip(esc(z.nom) + (z.statut === 'projet' ? ' (projet)' : '') + (cnt ? ` · ${cnt}` : ''), { permanent: true, direction: 'center', className: 'lbl zlbl' });
+    pg.on('click', () => { if (!zmode) openZoneView(z); });
+  }
+}
+function zonesListHtml(q) {
+  const rows = zones.filter(z => !q || [z.nom, z.notes, ztypeOf(z.type).label].join(' ').toLowerCase().includes(q))
+    .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
+  if (!rows.length) return '';
+  return `<div class="zhead">Aménagements</div>` + rows.map(z => {
+    const t = ztypeOf(z.type), dims = z.rect ? `${String(z.rect.L).replace('.', ',')} × ${String(z.rect.W).replace('.', ',')} m · ` : z.circle ? `Ø ${String(z.circle.D).replace('.', ',')} m · ` : '';
+    return `<button class="tag ztag${z.statut === 'projet' ? ' projet' : ''}" data-zid="${esc(z.id)}" style="--c:${t.color}"><span class="notch"></span><span class="body"><div class="name">${esc(z.nom)}</div><div class="meta">${t.label} · ${dims}${fmtArea(areaM2(z.pts))}</div></span><span class="side2"><span class="state ${z.statut === 'projet' ? 'surv' : 'ok'}">${z.statut === 'projet' ? 'En projet' : 'Existant'}</span><span class="swatch"></span></span></button>`;
+  }).join('');
+}
+ZTYPES.forEach(t => $('z-type').insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.label}</option>`));
+function zoneShapeInfo() {
+  const z = zdraft;
+  $('z-shape-info').textContent = z.pts && z.pts.length >= 3 ? (z.rect ? `rectangle ${String(z.rect.L).replace('.', ',')} × ${String(z.rect.W).replace('.', ',')} m` : z.circle ? `rond Ø ${String(z.circle.D).replace('.', ',')} m` : `${z.pts.length} coins`) + ' · ' + fmtArea(areaM2(z.pts)) : 'pas encore dessinée';
+  syncShape();
+}
+function fillZoneSheet() {
+  const z = zdraft;
+  $('sz-title').textContent = z.id ? z.nom || 'Aménagement' : 'Nouvel aménagement';
+  $('z-nom').value = z.nom || ''; $('z-type').value = z.type || 'bac'; $('z-statut').value = z.statut || 'existant'; $('z-notes').value = z.notes || '';
+  $('z-L').value = z.rect ? z.rect.L : ''; $('z-W').value = z.rect ? z.rect.W : ''; $('z-D').value = z.circle ? z.circle.D : '';
+  $('z-shape').value = z.circle ? 'cercle' : z.pts && !z.rect ? 'free' : 'rect';
+  $('z-del').hidden = !z.id; $('z-del-confirm').hidden = true;
+  zoneShapeInfo(); drawDraft();
+}
+function readZoneForm() { Object.assign(zdraft, { nom: $('z-nom').value.trim(), type: $('z-type').value, statut: $('z-statut').value, notes: $('z-notes').value.trim() }); }
+function openZone(z) { zdraft = JSON.parse(JSON.stringify(z)); fillZoneSheet(); openSheet('sheet-zone'); }
+function drawDraft(pts, closed = true) {
+  draftLayer.clearLayers();
+  const p = pts || (zdraft && zdraft.pts);
+  if (!p || !p.length) return;
+  const st = { color: '#ffd54a', weight: 3, fillColor: '#ffd54a', fillOpacity: .2, dashArray: '4 4' };
+  if (closed && p.length >= 3) L.polygon(p, st).addTo(draftLayer); else L.polyline(p, st).addTo(draftLayer);
+  p.forEach(ll => L.circleMarker(ll, { radius: 5, color: '#1d261c', weight: 2, fillColor: '#ffd54a', fillOpacity: 1 }).addTo(draftLayer));
+}
+$('btn-zone').onclick = () => { zdraft = { type: 'bac', statut: 'existant' }; $('z-shape').value = 'rect'; fillZoneSheet(); openSheet('sheet-zone'); };
+$('z-type').onchange = () => { readZoneForm(); };
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n > 0 ? n : null; };
+function showZoneBar(mode) {
+  zmode = mode; closeSheets();
+  $('zonebar').hidden = false; $('crosshair').hidden = false;
+  $('planview').hidden = true;
+  $('zb-rect').hidden = mode !== 'rect'; $('zb-rectgps').hidden = mode === 'free'; $('zb-free').hidden = mode !== 'free';
+  $('zb-hint').textContent = mode === 'cercle' ? 'Déplacez la carte pour mettre la croix au centre du rond, ou touchez « Je suis au centre ».' : mode === 'rect' ? 'Déplacez la carte pour mettre la croix au centre, puis tournez avec le curseur.' : 'Placez la croix sur un coin et touchez « Coin sous la croix », ou allez au coin et touchez « Coin au GPS ». Faites le tour dans l’ordre.';
+  ['btn-add', 'btn-list'].forEach(i => $(i).hidden = true);
+}
+function hideZoneBar() { $('zonebar').hidden = true; $('crosshair').hidden = true; zmode = null; ['btn-add', 'btn-list'].forEach(i => $(i).hidden = false); }
+function updRect() {
+  const c = map.getCenter(), a = +$('zb-angle').value;
+  zwork.center = { lat: c.lat, lng: c.lng }; zwork.angle = a;
+  zwork.pts = rectPts(zwork.center, zwork.L, zwork.W, a);
+  $('zb-angle-v').textContent = a + '°';
+  $('zb-info').textContent = `${String(zwork.L).replace('.', ',')} × ${String(zwork.W).replace('.', ',')} m · ${fmtArea(zwork.L * zwork.W)}`;
+  drawDraft(zwork.pts);
+}
+function updFree() { $('zb-info').textContent = zwork.pts.length < 3 ? `${zwork.pts.length} coin${zwork.pts.length > 1 ? 's' : ''} (3 minimum)` : `${zwork.pts.length} coins · ${fmtArea(areaM2(zwork.pts))}`; drawDraft(zwork.pts, zwork.pts.length >= 3); }
+function placeRect() {
+  readZoneForm();
+  const L_ = num($('z-L').value), W_ = num($('z-W').value);
+  if (!L_ || !W_) { toast('Indiquez la longueur et la largeur en mètres.'); $(L_ ? 'z-W' : 'z-L').focus(); return; }
+  const r = zdraft.rect;
+  const start = r ? [r.lat, r.lng] : me ? [me.lat, me.lng] : null;
+  if (start) map.setView(start, Math.max(map.getZoom(), 21)); else map.setZoom(Math.max(map.getZoom(), 21));
+  zwork = { L: L_, W: W_, angle: r ? r.angle : 0 };
+  $('zb-angle').value = zwork.angle;
+  showZoneBar('rect'); updRect();
+}
+function placeCircle() {
+  readZoneForm();
+  const D = num($('z-D').value);
+  if (!D) { toast('Indiquez le diamètre en mètres.'); $('z-D').focus(); return; }
+  const c = zdraft.circle, start = c ? [c.lat, c.lng] : me ? [me.lat, me.lng] : null;
+  if (start) map.setView(start, Math.max(map.getZoom(), 21)); else map.setZoom(Math.max(map.getZoom(), 21));
+  zwork = { D };
+  showZoneBar('cercle'); updCircle();
+}
+function circlePts(c, D) { const k = mLng(c.lat), out = []; for (let i = 0; i < 36; i++) { const a = i / 36 * 2 * Math.PI; out.push([c.lat + Math.cos(a) * D / 2 / M_LAT, c.lng + Math.sin(a) * D / 2 / k]); } return out; }
+function updCircle() {
+  const c = map.getCenter(); zwork.center = { lat: c.lat, lng: c.lng }; zwork.pts = circlePts(zwork.center, zwork.D);
+  $('zb-info').textContent = `Ø ${String(zwork.D).replace('.', ',')} m · ${fmtArea(Math.PI * zwork.D * zwork.D / 4)}`;
+  drawDraft(zwork.pts);
+}
+function syncShape() { const v = $('z-shape').value; $('z-dims').hidden = v !== 'rect'; $('z-dimc').hidden = v !== 'cercle'; $('z-place').textContent = v === 'free' ? (zdraft && zdraft.pts && !zdraft.rect && !zdraft.circle ? 'Retracer les coins' : 'Tracer les coins') : (zdraft && zdraft.pts ? 'Ajuster sur la carte' : 'Placer sur la carte'); }
+$('z-shape').onchange = syncShape;
+$('z-place').onclick = () => { const v = $('z-shape').value; if (v === 'rect') placeRect(); else if (v === 'cercle') placeCircle(); else placeFree(); };
+function placeFree() {
+  readZoneForm();
+  zwork = { pts: [] };
+  if (zdraft.pts && zdraft.pts.length) map.fitBounds(L.latLngBounds(zdraft.pts).pad(.8), { maxZoom: 21 }); else map.setZoom(Math.max(map.getZoom(), 20));
+  showZoneBar('free'); updFree();
+}
+map.on('move', () => { if (zmode === 'rect') updRect(); else if (zmode === 'cercle') updCircle(); });
+$('zb-angle').oninput = () => updRect();
+$('zb-addpt').onclick = () => { const c = map.getCenter(); zwork.pts.push([c.lat, c.lng]); updFree(); };
+$('zb-undo').onclick = () => { zwork.pts.pop(); updFree(); };
+function zoneGps(cb) {
+  $('zonebar').hidden = true;
+  startCapture(r => { $('zonebar').hidden = false; cb(r); });
+  capture.onCancel = () => { $('zonebar').hidden = false; $('backdrop').hidden = true; };
+}
+$('zb-gpspt').onclick = () => zoneGps(r => { zwork.pts.push([r.lat, r.lng]); map.panTo([r.lat, r.lng]); updFree(); });
+$('zb-centergps').onclick = () => zoneGps(r => { map.setView([r.lat, r.lng], map.getZoom()); zmode === 'cercle' ? updCircle() : updRect(); });
+$('zb-ok').onclick = () => {
+  if (zmode === 'rect') { zdraft.pts = zwork.pts; zdraft.rect = { lat: zwork.center.lat, lng: zwork.center.lng, L: zwork.L, W: zwork.W, angle: zwork.angle }; delete zdraft.circle; }
+  else if (zmode === 'cercle') { zdraft.pts = zwork.pts; zdraft.circle = { lat: zwork.center.lat, lng: zwork.center.lng, D: zwork.D }; delete zdraft.rect; }
+  else { if (zwork.pts.length < 3) { toast('Il faut au moins 3 coins.'); return; } zdraft.pts = zwork.pts; delete zdraft.rect; delete zdraft.circle; }
+  delete zdraft.frame;
+  hideZoneBar(); fillZoneSheet(); openSheet('sheet-zone');
+};
+$('zb-cancel').onclick = () => { hideZoneBar(); fillZoneSheet(); openSheet('sheet-zone'); };
+$('z-save').onclick = async () => {
+  readZoneForm();
+  if (!zdraft.nom) { $('z-nom').focus(); toast('Donnez-lui un nom.'); return; }
+  if (!zdraft.pts || zdraft.pts.length < 3) { toast('Dessinez d’abord sa forme sur la carte.'); return; }
+  const isNew = !zdraft.id;
+  if (isNew) zdraft.id = 'z' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  zdraft.updatedAt = new Date().toISOString(); zdraft.createdAt = zdraft.createdAt || zdraft.updatedAt;
+  zdraft.frame = computeFrame(zdraft);
+  await idb.putZone(zdraft);
+  const i = zones.findIndex(x => x.id === zdraft.id); if (i >= 0) zones[i] = zdraft; else zones.push(zdraft);
+  for (const p of plants) if (p.zoneId === zdraft.id && p.zx != null) { const g = toGeo(zdraft.frame, p.zx, p.zy); p.lat = g[0]; p.lng = g[1]; await idb.put(p); }
+  if (pvZone && pvZone.id === zdraft.id) pvZone = zdraft;
+  zdraft = null; draftLayer.clearLayers(); closeSheets(); renderAll(); toast(isNew ? 'Aménagement ajouté' : 'Aménagement mis à jour');
+};
+$('z-close').onclick = () => { zdraft = null; draftLayer.clearLayers(); closeSheets(); };
+$('z-del').onclick = () => { const n = plants.filter(p => p.zoneId === zdraft.id).length; $('z-del-confirm').firstElementChild.textContent = n ? `Supprimer cet aménagement et les ${n} plante${n > 1 ? 's' : ''} qui y sont notées ?` : 'Supprimer définitivement cet aménagement ?'; $('z-del-confirm').hidden = false; };
+$('z-del-no').onclick = () => $('z-del-confirm').hidden = true;
+$('z-del-yes').onclick = async () => { for (const p of plants.filter(p => p.zoneId === zdraft.id)) await idb.del(p.id); plants = plants.filter(p => p.zoneId !== zdraft.id); await idb.delZone(zdraft.id); zones = zones.filter(z => z.id !== zdraft.id); if (pvZone && pvZone.id === zdraft.id) closePlanView(); zdraft = null; draftLayer.clearLayers(); closeSheets(); renderAll(); toast('Aménagement supprimé'); };
+
+/* ===== Repère local des zones ===== */
+const fmtM = m => (m < 1 ? Math.round(m * 100) + ' cm' : m.toFixed(2).replace('.', ',') + ' m');
+function uv(angle) { const t = angle * Math.PI / 180; return { ux: Math.sin(t), uy: Math.cos(t), vx: Math.cos(t), vy: -Math.sin(t) }; }
+function toGeo(f, x, y) { const { ux, uy, vx, vy } = uv(f.angle), a = x - f.L / 2, b = y - f.W / 2; return [f.lat + (a * uy + b * vy) / M_LAT, f.lng + (a * ux + b * vx) / mLng(f.lat)]; }
+function toLocal(f, lat, lng) { const { ux, uy, vx, vy } = uv(f.angle), e = (lng - f.lng) * mLng(f.lat), n = (lat - f.lat) * M_LAT; return [e * ux + n * uy + f.L / 2, e * vx + n * vy + f.W / 2]; }
+function computeFrame(z) {
+  if (z.rect) return { lat: z.rect.lat, lng: z.rect.lng, L: z.rect.L, W: z.rect.W, angle: z.rect.angle };
+  if (z.circle) return { lat: z.circle.lat, lng: z.circle.lng, L: z.circle.D, W: z.circle.D, angle: 90 };
+  const p0 = z.pts[0], k = mLng(p0[0]), en = z.pts.map(([la, ln]) => [(ln - p0[1]) * k, (la - p0[0]) * M_LAT]);
+  let best = null;
+  for (let ang = 0; ang < 180; ang++) {
+    const { ux, uy, vx, vy } = uv(ang); let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+    for (const [e, n] of en) { const a = e * ux + n * uy, b = e * vx + n * vy; a0 = Math.min(a0, a); a1 = Math.max(a1, a); b0 = Math.min(b0, b); b1 = Math.max(b1, b); }
+    const area = (a1 - a0) * (b1 - b0);
+    if (a1 - a0 >= b1 - b0 && (!best || area < best.area - 1e-9)) best = { area, ang, a0, a1, b0, b1 };
+  }
+  const { ux, uy, vx, vy } = uv(best.ang), ac = (best.a0 + best.a1) / 2, bc = (best.b0 + best.b1) / 2;
+  const e = ac * ux + bc * vx, n = ac * uy + bc * vy;
+  return { lat: p0[0] + n / M_LAT, lng: p0[1] + e / k, L: best.a1 - best.a0, W: best.b1 - best.b0, angle: best.ang };
+}
+function zoneFrame(z) { if (!z.frame) z.frame = computeFrame(z); return z.frame; }
+const CULTIVABLE = ['bac', 'potager'];
+function insideZone(z, x, y) {
+  const f = zoneFrame(z), eps = 0.02;
+  if (z.circle) return Math.hypot(x - f.L / 2, y - f.W / 2) <= f.L / 2 + eps;
+  if (z.rect) return x >= -eps && y >= -eps && x <= f.L + eps && y <= f.W + eps;
+  const poly = z.pts.map(([la, ln]) => toLocal(f, la, ln)); let inn = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inn = !inn; }
+  return inn;
+}
+
+/* ===== Saisons & rotations ===== */
+const yearOf = d => d ? +String(d).slice(0, 4) : null;
+const startYear = p => yearOf(p.date) || yearOf(p.semis) || yearOf(p.createdAt) || new Date().getFullYear();
+const endYear = p => p.dateFin ? yearOf(p.dateFin) : p.cat === 'annuel' ? startYear(p) : Infinity;
+const isFinished = p => !!p.dateFin || (p.cat === 'annuel' && endYear(p) < new Date().getFullYear());
+const activeIn = (p, y) => startYear(p) <= y && endYear(p) >= y;
+function rotationHits(zoneId, fam, pts, year, exceptIds = []) {
+  const F = famOf(fam); if (!F || !F.rot) return [];
+  const yrs = new Map();
+  for (const p of plants) {
+    if (p.zoneId !== zoneId || p.famille !== fam || p.zx == null || exceptIds.includes(p.id)) continue;
+    const ey = endYear(p); if (ey >= year || ey < year - (F.rot - 1)) continue;
+    if (pts.some(([x, y]) => Math.hypot(p.zx - x, p.zy - y) <= 0.5)) yrs.set(ey, (yrs.get(ey) || new Set()).add(p.nom));
+  }
+  return [...yrs.entries()].sort((a, b) => b[0] - a[0]);
+}
+function rotText(fam, hits) {
+  const F = famOf(fam);
+  return `Rotation : des ${F.label.split(' (')[0].toLowerCase()} étaient déjà ici en ${hits.map(([y, n]) => `${y} (${[...n].join(', ')})`).join(', ')}. Idéalement, attendre ${F.rot} ans avant de les remettre au même endroit.`;
+}
+function rotCheck() {
+  const p = draft, box = $('rot-warn');
+  if (!p || !p.zoneId || p.zx == null || !$('f-fam').value) { box.hidden = true; return; }
+  const y = yearOf($('f-date').value) || new Date().getFullYear();
+  const hits = rotationHits(p.zoneId, $('f-fam').value, [[p.zx, p.zy]], y, [p.id]);
+  box.hidden = !hits.length; if (hits.length) box.textContent = rotText($('f-fam').value, hits);
+}
+function autoFam(nomEl, famEl, latEl) {
+  const v = vegFor(nomEl.value);
+  if (!famEl.dataset.manual) famEl.value = v ? v.fam : '';
+  if (latEl && (!latEl.value || latEl.value === latEl.dataset.auto)) { latEl.value = v ? v.latin : ''; latEl.dataset.auto = latEl.value; }
+}
+FAMS.forEach(f => { for (const id of ['f-fam', 'pk-fam']) $(id).insertAdjacentHTML('beforeend', `<option value="${f.id}">${f.label}</option>`); });
+['f-fam', 'pk-fam'].forEach(id => $(id).insertAdjacentHTML('afterbegin', '<option value="">—</option>'));
+$('f-nom').addEventListener('input', () => { autoFam($('f-nom'), $('f-fam'), $('f-latin')); rotCheck(); });
+$('f-fam').addEventListener('change', () => { $('f-fam').dataset.manual = '1'; rotCheck(); });
+$('f-date').addEventListener('change', rotCheck);
+function refreshDatalist() {
+  const names = new Set(VEG_NAMES); plants.forEach(p => p.nom && names.add(p.nom));
+  $('dl-plantes').innerHTML = [...names].sort((a, b) => a.localeCompare(b, 'fr')).map(n => `<option value="${esc(n)}">`).join('');
+}
+const today = () => new Date().toISOString().slice(0, 10);
+
+/* ===== Vue plan ===== */
+let pvZone = null, pvYear = new Date().getFullYear(), pvZoom = 1, pvGhost = false, pvMode = null, pvRowStart = null, pvLast = null, pvTemplate = null, pvSel = null;
+function openZoneView(z) {
+  if (CULTIVABLE.includes(z.type) || z.type === 'serre') openPlanView(z); else openZone(z);
+}
+function openPlanView(z) {
+  pvZone = z; pvMode = null; pvRowStart = null; pvZoom = 1; pvSel = null;
+  closeSheets(); $('planview').hidden = false; $('planview').classList.toggle('serre', z.type === 'serre');
+  $('pv-zoomseg').hidden = z.type === 'serre'; $('pv-ghost').hidden = z.type === 'serre';
+  $('pv-add1').textContent = z.type === 'serre' ? '+ Un semis ou des plants' : '+ Un pied';
+  $('pv-addrow').hidden = z.type === 'serre';
+  setPvMode(null); renderPlan();
+}
+function closePlanView() { $('planview').hidden = true; pvZone = null; pvTemplate = null; pvMode = null; }
+$('pv-back').onclick = closePlanView;
+$('pv-edit').onclick = () => { const z = pvZone; openZone(z); };
+$('pv-yprev').onclick = () => { pvYear--; renderPlan(); };
+$('pv-ynext').onclick = () => { pvYear++; renderPlan(); };
+$('pv-ghost').onclick = () => { pvGhost = !pvGhost; $('pv-ghost').setAttribute('aria-pressed', pvGhost); renderPlan(); };
+function pvSetZoom(nz) {
+  const c = $('pv-canvas'), fx = (c.scrollLeft + c.clientWidth / 2) / (c.scrollWidth || 1), fy = (c.scrollTop + c.clientHeight / 2) / (c.scrollHeight || 1);
+  pvZoom = Math.max(1, Math.min(12, nz)); renderPlan();
+  c.scrollLeft = fx * c.scrollWidth - c.clientWidth / 2; c.scrollTop = fy * c.scrollHeight - c.clientHeight / 2;
+}
+$('pv-zin').onclick = () => pvSetZoom(pvZoom * 1.6);
+$('pv-zout').onclick = () => pvSetZoom(pvZoom / 1.6);
+function setPvMode(m, text) {
+  pvMode = m; $('pv-mode').hidden = !m; $('pv-modetext').textContent = text || '';
+  $('pv-addtools').hidden = !!m;
+  $('pv-switch').hidden = !(m === 'add1' || m === 'row1' || m === 'row2');
+  $('pv-switch').textContent = m === 'add1' ? 'Faire une rangée' : 'Pied par pied';
+  $('pv-undo').hidden = !pvAdded.length || m === 'move';
+  if (!m) { pvRowStart = null; pvCurrent = null; pvTemplate = null; pvAdded = []; }
+}
+let pvCurrent = null, pvAdded = [], pickMode = 'add1';
+const modeText = m => m === 'add1' ? `« ${pvCurrent.nom} » : touchez le plan pour chaque pied` : m === 'row1' ? `Rangée de « ${pvCurrent.nom} » : touchez le début` : `Rangée de « ${pvCurrent.nom} » : touchez la fin`;
+$('pv-modeend').onclick = () => { setPvMode(null); renderPlan(); };
+$('pv-switch').onclick = () => { const m = pvMode === 'add1' ? 'row1' : 'add1'; pvRowStart = null; setPvMode(m, modeText(m)); renderPlan(); };
+$('pv-undo').onclick = async () => {
+  const last = pvAdded.pop(); if (!last) return;
+  for (const id of last) { await idb.del(id); }
+  plants = plants.filter(p => !last.includes(p.id));
+  toast(`${last.length > 1 ? last.length + ' pieds retirés' : 'Dernier pied retiré'}`);
+  setPvMode(pvMode, $('pv-modetext').textContent); renderAll();
+};
+$('pv-add1').onclick = () => { if (pvZone.type === 'serre') { newZonePlant({}); return; } openPick('add1'); };
+$('pv-addrow').onclick = () => openPick('row1');
+function openPick(mode) {
+  pickMode = mode; const base = pvLast || {};
+  $('pk-title').textContent = mode === 'row1' ? 'Rangée de quelle plante ?' : 'Quelle plante ?';
+  $('pk-nom').value = base.nom || ''; $('pk-var').value = base.variete || ''; $('pk-fam').value = base.famille || ''; $('pk-fam').dataset.manual = '';
+  updPick(); openSheet('sheet-pick');
+  setTimeout(() => { $('pk-nom').focus(); $('pk-nom').select(); }, 60);
+}
+function blockedFor(zoneId, fam, year) {
+  const F = famOf(fam); if (!F || !F.rot) return [];
+  return plants.filter(p => p.zoneId === zoneId && p.famille === fam && p.zx != null && endYear(p) < year && endYear(p) >= year - (F.rot - 1));
+}
+function updPick() {
+  const fam = $('pk-fam').value, F = famOf(fam), bl = fam ? blockedFor(pvZone.id, fam, pvYear) : [];
+  if (bl.length) {
+    const yrs = [...new Set(bl.map(endYear))].sort(), names = [...new Set(bl.map(p => p.nom))].slice(0, 4).join(', ');
+    $('pk-rot').hidden = false;
+    $('pk-rot').textContent = `Des ${F.label.split(' (')[0].toLowerCase()} étaient ici en ${yrs.join(', ')} (${names}). Les endroits concernés seront hachurés en rouge : plantez à côté, ou attendez ${Math.max(...yrs) + F.rot}.`;
+  } else $('pk-rot').hidden = true;
+}
+$('pk-nom').addEventListener('input', () => { autoFam($('pk-nom'), $('pk-fam')); updPick(); });
+$('pk-fam').addEventListener('change', () => { $('pk-fam').dataset.manual = '1'; updPick(); });
+$('pk-cancel').onclick = () => closeSheets();
+$('pk-ok').onclick = () => {
+  const nom = $('pk-nom').value.trim(); if (!nom) { $('pk-nom').focus(); toast('Indiquez la plante.'); return; }
+  const v = vegFor(nom), prev = pvLast && norm(pvLast.nom) === norm(nom) ? pvLast : null;
+  pvCurrent = { nom, variete: $('pk-var').value.trim(), famille: $('pk-fam').value, latin: v ? v.latin : (prev && prev.latin) || '', cat: (prev && prev.cat) || 'annuel' };
+  pvLast = { ...pvCurrent };
+  closeSheets(); pvAdded = []; setPvMode(pickMode, modeText(pickMode)); renderPlan();
+};
+async function createZonePlants(pts, extra = {}) {
+  const f = zoneFrame(pvZone), now = new Date().toISOString(), ids = [];
+  let i = 0;
+  for (const [x, y] of pts) {
+    const zx = Math.round(x * 100) / 100, zy = Math.round(y * 100) / 100, g = toGeo(f, zx, zy);
+    const rec = { zoneId: pvZone.id, nom: pvCurrent.nom, variete: pvCurrent.variete, famille: pvCurrent.famille, latin: pvCurrent.latin, cat: pvCurrent.cat || 'annuel', etat: 'ok', date: today(), createdAt: now, updatedAt: now, ...extra,
+      id: 'p' + Date.now().toString(36) + (i++).toString(36) + Math.random().toString(36).slice(2, 5), zx, zy, lat: g[0], lng: g[1] };
+    if (pvTemplate) Object.assign(rec, { semis: pvTemplate.semis, provenance: pvTemplate.provenance, fromId: pvTemplate.fromId });
+    for (const k of Object.keys(rec)) if (rec[k] === '' || rec[k] == null) delete rec[k];
+    await idb.put(rec); plants.push(rec); ids.push(rec.id);
+  }
+  pvAdded.push(ids);
+  await finishRepiquage();
+  return ids;
+}
+function newZonePlant(pos) {   // serre : fiche complète
+  const base = pvLast || {};
+  draft = { zoneId: pvZone.id, etat: 'ok', date: today(), cat: base.cat || 'annuel', nom: base.nom || '', latin: base.latin || '', famille: base.famille || '', variete: base.variete || '', ...pos };
+  fillPlantSheet(); openSheet('sheet-plant');
+  $('f-fam').dataset.manual = ''; $('f-latin').dataset.auto = draft.latin || '';
+  setTimeout(() => { $('f-nom').focus(); $('f-nom').select(); }, 60);
+}
+function svgPoint(evt) {
+  const svg = $('pv-canvas').querySelector('svg'); if (!svg) return null;
+  const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+  const r = pt.matrixTransform(svg.getScreenCTM().inverse()); return [r.x, r.y];
+}
+$('pv-canvas').addEventListener('click', async evt => {
+  if (!pvZone) return;
+  const dot = evt.target.closest('[data-pid]');
+  if (dot && pvMode !== 'move' && pvMode !== 'row2') { const p = plants.find(x => x.id === dot.dataset.pid); if (p) { pvSel = p.id; renderPlan(); openPlant(p); } return; }
+  if (!pvMode) return;
+  const pt = svgPoint(evt); if (!pt) return;
+  const [x, y] = pt.map(v => Math.round(v * 100) / 100);
+  if (!insideZone(pvZone, x, y)) { toast('Ce point est en dehors de la zone.'); return; }
+  if (pvMode === 'add1') {
+    const bl = pvCurrent.famille ? blockedFor(pvZone.id, pvCurrent.famille, pvYear) : [];
+    await createZonePlants([[x, y]]);
+    const near = bl.find(p => Math.hypot(p.zx - x, p.zy - y) <= 0.5);
+    toast(near ? `Ajouté, mais attention rotation : ${near.nom} ici en ${endYear(near)}` : `${pvCurrent.nom} ajouté`);
+    setPvMode('add1', modeText('add1')); renderAll();
+  }
+  else if (pvMode === 'move') { draft.zx = x; draft.zy = y; setPvMode(null); renderPlan(); fillPlantSheetKeep(); openSheet('sheet-plant'); }
+  else if (pvMode === 'row1') { pvRowStart = [x, y]; setPvMode('row2', modeText('row2')); renderPlan(); }
+  else if (pvMode === 'row2') { openRowSheet(pvRowStart, [x, y]); }
+});
+function fillPlantSheetKeep() { const keep = { ...draft }; fillPlantSheet().then(() => { Object.assign(draft, keep); }); }
+$('btn-zmove').onclick = () => {
+  readForm(); const z = zones.find(x => x.id === draft.zoneId); if (!z) return;
+  if (!pvZone || pvZone.id !== z.id) openPlanView(z);
+  closeSheets(); setPvMode('move', `Touchez le nouvel emplacement de « ${draft.nom || 'la plante'} »`); renderPlan();
+};
+$('btn-zview').onclick = () => { const z = zones.find(x => x.id === draft.zoneId); if (!z) return; const id = draft.id; closeSheets(); openPlanView(z); pvSel = id; renderPlan(); draft = null; };
+
+/* Rangée */
+let rowPts = null;
+function rowPositions(a, b, espM) {
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.floor(len / espM + 1e-6) + 1), out = [];
+  for (let i = 0; i < n; i++) { const t = n === 1 ? 0 : i * espM / len; out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+  return { len, pts: out };
+}
+function openRowSheet(a, b) {
+  rowPts = [a, b];
+  $('sr-title').textContent = `Rangée de « ${pvCurrent.nom} »`;
+  $('r-date').value = today();
+  updRowInfo(); openSheet('sheet-row');
+}
+function updRowInfo() {
+  const esp = (parseFloat(String($('r-esp').value).replace(',', '.')) || 30) / 100;
+  const { len, pts } = rowPositions(rowPts[0], rowPts[1], esp);
+  $('r-info').textContent = `${pts.length} pied${pts.length > 1 ? 's' : ''} sur ${fmtM(len)}, tous les ${Math.round(esp * 100)} cm.`;
+  const fam = pvCurrent && pvCurrent.famille, hits = fam ? rotationHits(pvZone.id, fam, pts, yearOf($('r-date').value) || pvYear) : [];
+  $('r-warn').hidden = !hits.length; if (hits.length) $('r-warn').textContent = rotText(fam, hits);
+  return pts;
+}
+['r-esp', 'r-date'].forEach(id => $(id).addEventListener('input', updRowInfo));
+$('r-cancel').onclick = () => { closeSheets(); pvRowStart = null; setPvMode('row1', modeText('row1')); renderPlan(); };
+$('r-ok').onclick = async () => {
+  const pts = updRowInfo(), rowId = 'r' + Date.now().toString(36);
+  const ids = await createZonePlants(pts, { rowId, date: $('r-date').value || today() });
+  closeSheets(); pvRowStart = null; setPvMode('row1', modeText('row1')); renderAll();
+  toast(`${ids.length} pied${ids.length > 1 ? 's' : ''} de ${pvCurrent.nom} ajouté${ids.length > 1 ? 's' : ''}`);
+};
+
+/* Serre : repiquage */
+let repiqSrc = null;
+$('btn-repiq').onclick = () => {
+  readForm(); repiqSrc = { ...draft };
+  const targets = zones.filter(z => CULTIVABLE.includes(z.type));
+  if (!targets.length) { toast('Créez d’abord un bac ou une bande de culture.'); return; }
+  $('rq-zone').innerHTML = targets.map(z => `<option value="${esc(z.id)}">${esc(z.nom)}</option>`).join('');
+  $('rq-all').checked = false; $('rq-title').textContent = `Repiquer « ${repiqSrc.nom} »`;
+  openSheet('sheet-repiq');
+};
+$('rq-cancel').onclick = () => { closeSheets(); repiqSrc = null; };
+$('rq-ok').onclick = () => {
+  const z = zones.find(x => x.id === $('rq-zone').value); if (!z || !repiqSrc) return;
+  const src = repiqSrc;
+  pvTemplate = { nom: src.nom, latin: src.latin, famille: src.famille || (vegFor(src.nom) || {}).fam || '', cat: src.cat || 'annuel', variete: src.variete, semis: src.date || src.semis, provenance: 'Serre' + (src.date ? ` (semé le ${fmtDate(src.date)})` : ''), fromId: src.id, finish: $('rq-all').checked, keep: true };
+  draft = null; openPlanView(z);
+  pvCurrent = { nom: pvTemplate.nom, variete: pvTemplate.variete, famille: pvTemplate.famille, latin: pvTemplate.latin, cat: pvTemplate.cat };
+  pvAdded = []; setPvMode('add1', 'Repiquage : ' + modeText('add1'));
+  renderPlan();
+};
+async function finishRepiquage() {
+  if (!pvTemplate || !pvTemplate.finish) return;
+  const src = plants.find(p => p.id === pvTemplate.fromId);
+  if (src && !src.dateFin) { src.dateFin = today(); src.notes = ((src.notes || '') + `\nRepiqué le ${fmtDate(today())} dans ${pvZone.nom}.`).trim(); await idb.put(src); }
+  pvTemplate.finish = false;
+}
+const _savePlantOrig = savePlant;
+savePlant = async function () {
+  const wasZone = draft && draft.zoneId && pvZone;
+  await _savePlantOrig();
+  if (wasZone) { await finishRepiquage(); renderPlan(); }
+};
+$('btn-save').onclick = () => savePlant();
+
+function renderPlan() {
+  const z = pvZone; if (!z) return;
+  const serre = z.type === 'serre';
+  $('pv-title').textContent = z.nom; $('pv-yval').textContent = pvYear;
+  const here = plants.filter(p => p.zoneId === z.id);
+  const act = here.filter(p => activeIn(p, pvYear)), ghost = pvGhost ? here.filter(p => activeIn(p, pvYear - 1) && !activeIn(p, pvYear)) : [];
+  if (!serre) {
+    const f = zoneFrame(z);
+    $('pv-sub').textContent = `${ztypeOf(z.type).label} · ${z.circle ? 'Ø ' + fmtM(f.L) : fmtM(f.L) + ' × ' + fmtM(f.W)} · ${act.length} plant${act.length > 1 ? 's' : ''} en ${pvYear}`;
+    const c = $('pv-canvas'), cw = Math.max(200, c.clientWidth - 24), ch = Math.max(160, c.clientHeight - 24);
+    const fit = Math.min((cw - 28) / f.L, (ch - 64) / f.W, 900);
+    const sc = Math.max(fit, Math.min((cw - 28) / f.L, 400)) * pvZoom;   // px per metre
+    const u = 1 / sc, pad = 14 * u, top = 64 * u, VW = f.L + pad * 2, VH = f.W + pad + top;
+    const W = VW * sc, H = VH * sc;
+    const css = getComputedStyle(document.documentElement), col = n => css.getPropertyValue(n).trim();
+    let shape;
+    if (z.circle) shape = `<circle cx="${f.L / 2}" cy="${f.W / 2}" r="${f.L / 2}"/>`;
+    else if (z.rect) shape = `<rect x="0" y="0" width="${f.L}" height="${f.W}"/>`;
+    else shape = `<polygon points="${z.pts.map(([la, ln]) => toLocal(f, la, ln).map(v => v.toFixed(3)).join(',')).join(' ')}"/>`;
+    let grid = '';
+    const step = sc >= 300 ? 0.1 : sc >= 120 ? 0.25 : 0.5;
+    for (let x = 0; x <= f.L + 1e-6; x += step) { const b = Math.abs(x - Math.round(x)) < 1e-6; grid += `<line x1="${x}" y1="0" x2="${x}" y2="${f.W}" stroke="${b ? col('--soil-bold') : col('--soil-line')}" stroke-width="${(b ? 1.5 : 1) * u}"/>`; }
+    for (let y = 0; y <= f.W + 1e-6; y += step) { const b = Math.abs(y - Math.round(y)) < 1e-6; grid += `<line x1="0" y1="${y}" x2="${f.L}" y2="${y}" stroke="${b ? col('--soil-bold') : col('--soil-line')}" stroke-width="${(b ? 1.5 : 1) * u}"/>`; }
+    let ruler = '';
+    const rstep = f.L > 6 ? 1 : 0.5;
+    for (let x = 0; x <= f.L + 1e-6; x += rstep) ruler += `<text x="${x}" y="${-8 * u}" font-size="${11 * u}" text-anchor="middle" fill="${col('--muted')}">${Number.isInteger(Math.round(x * 10) / 10) ? Math.round(x) : String(x).replace('.', ',')}${x + rstep > f.L + 1e-6 ? ' m' : ''}</text>`;
+    // north arrow
+    const t = f.angle * Math.PI / 180, dx = Math.cos(t), dy = -Math.sin(t), ax = f.L - 12 * u, ay = -38 * u, al = 8 * u;
+    const north = `<g opacity=".8"><line x1="${ax - dx * al}" y1="${ay - dy * al}" x2="${ax + dx * al}" y2="${ay + dy * al}" stroke="${col('--ink')}" stroke-width="${1.6 * u}"/><circle cx="${ax + dx * al}" cy="${ay + dy * al}" r="${2.4 * u}" fill="${col('--ink')}"/><text x="${ax + dx * (al + 9 * u)}" y="${ay + dy * (al + 9 * u) + 4 * u}" font-size="${10 * u}" font-weight="700" text-anchor="middle" fill="${col('--ink')}">N</text></g>`;
+    const r = Math.max(0.035, 7 * u), showTxt = sc >= 110;
+    let dots = '';
+    for (const p of ghost) if (p.zx != null) { const F = famOf(p.famille); dots += `<circle cx="${p.zx}" cy="${p.zy}" r="${r}" fill="none" stroke="${F ? F.color : col('--muted')}" stroke-width="${1.5 * u}" stroke-dasharray="${3 * u} ${2 * u}" opacity=".8"/>`; }
+    for (const p of act) if (p.zx != null) {
+      const F = famOf(p.famille), c2 = F ? F.color : catOf(p.cat).color, sel = p.id === pvSel;
+      dots += `<g data-pid="${esc(p.id)}" style="cursor:pointer"><circle cx="${p.zx}" cy="${p.zy}" r="${r + 6 * u}" fill="transparent"/><circle cx="${p.zx}" cy="${p.zy}" r="${r}" fill="${c2}" stroke="${sel ? '#ffd54a' : '#fff'}" stroke-width="${(sel ? 3 : 1.5) * u}"/>`;
+      if (showTxt && showLabels) dots += `<text x="${p.zx}" y="${p.zy - r - 3 * u}" font-size="${10 * u}" text-anchor="middle" fill="${col('--ink')}" style="paint-order:stroke;stroke:${col('--soil')};stroke-width:${3 * u}px">${esc((p.nom || '').slice(0, 14))}</text>`;
+      dots += `</g>`;
+    }
+    if (pvMode && pvCurrent && pvCurrent.famille) for (const p of blockedFor(z.id, pvCurrent.famille, pvYear)) dots = `<circle cx="${p.zx}" cy="${p.zy}" r="0.5" fill="url(#hatch)" stroke="#c0392b" stroke-width="${1.5 * u}" stroke-dasharray="${4 * u} ${3 * u}"/><text x="${p.zx}" y="${p.zy + 0.5 - 4 * u}" font-size="${10 * u}" text-anchor="middle" fill="#a32a1f" font-weight="700">${endYear(p)}</text>` + dots;
+    if (pvRowStart) dots += `<circle cx="${pvRowStart[0]}" cy="${pvRowStart[1]}" r="${r}" fill="#ffd54a" stroke="#1d261c" stroke-width="${1.5 * u}"/>`;
+    c.innerHTML = `<svg width="${W}" height="${H}" viewBox="${-pad} ${-top} ${VW} ${VH}" style="margin:12px auto" role="img" aria-label="Plan de ${esc(z.nom)}">
+      <defs><clipPath id="pvclip">${shape}</clipPath><pattern id="hatch" patternUnits="userSpaceOnUse" width="${8 * u}" height="${8 * u}" patternTransform="rotate(45)"><rect width="${8 * u}" height="${8 * u}" fill="rgba(192,57,43,.12)"/><line x1="0" y1="0" x2="0" y2="${8 * u}" stroke="rgba(192,57,43,.55)" stroke-width="${3 * u}"/></pattern></defs>
+      <g fill="${col('--soil')}" stroke="${col('--soil-bold')}" stroke-width="${2 * u}">${shape}</g>
+      <g clip-path="url(#pvclip)">${grid}</g>${ruler}${north}${dots}</svg>`;
+    c.style.cursor = pvMode ? 'crosshair' : '';
+    const blk = [];
+    for (const F of FAMS) { if (!F.rot) continue; const ys = here.filter(p => p.famille === F.id && endYear(p) < pvYear).map(endYear); if (!ys.length) continue; const last = Math.max(...ys); if (last + F.rot > pvYear) blk.push(`${F.label.split(' (')[0].toLowerCase()} (${last}) → pas avant <b>${last + F.rot}</b>`); }
+    $('pv-rot').innerHTML = blk.length ? `Rotation en ${pvYear} : ${blk.join(' · ')}. Ailleurs dans la zone, c'est libre.` : (here.length ? `Rotation : aucune contrainte en ${pvYear}.` : '');
+  } else {
+    $('pv-rot').innerHTML = '';
+    $('pv-sub').textContent = `Serre · ${act.length} lot${act.length > 1 ? 's' : ''} en ${pvYear}`;
+    $('pv-canvas').innerHTML = '';
+  }
+  // list
+  let h = '';
+  if (serre) {
+    h += `<h3>En serre (${pvYear})</h3>`;
+    if (!act.length) h += `<div class="nores">Rien en serre pour ${pvYear}. Touchez « + Un semis ou des plants ».</div>`;
+    for (const p of act.sort((a, b) => (a.date || '').localeCompare(b.date || ''))) {
+      const F = famOf(p.famille);
+      h += `<div class="pv-row"><i style="background:${F ? F.color : catOf(p.cat).color}"></i><button class="t" data-open="${esc(p.id)}" style="background:none;border:0;text-align:left;padding:0"><b>${esc(p.nom)}${p.variete ? ' · ' + esc(p.variete) : ''}</b><span>${[p.qte && esc(p.qte), p.date && 'semé le ' + fmtDate(p.date), p.dateFin && 'fini le ' + fmtDate(p.dateFin)].filter(Boolean).join(' · ')}</span></button>${p.dateFin ? '' : `<button class="mini" data-repiq="${esc(p.id)}">Repiquer</button>`}</div>`;
+    }
+  } else {
+    const groups = new Map();
+    for (const p of act) { const k = p.nom + '|' + (p.variete || ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+    h += `<h3>En place en ${pvYear}</h3>`;
+    if (!groups.size) h += `<div class="nores">Rien de noté pour ${pvYear}. Touchez « + Un pied » ou « + Une rangée ».</div>`;
+    for (const [, g] of [...groups].sort((a, b) => a[0].localeCompare(b[0], 'fr'))) {
+      const p = g[0], F = famOf(p.famille);
+      h += `<button class="pv-row" data-open="${esc(p.id)}"><i style="background:${F ? F.color : catOf(p.cat).color}"></i><span class="t"><b>${esc(p.nom)}${p.variete ? ' · ' + esc(p.variete) : ''}</b><span>${[F && F.label.split(' (')[0], p.date && 'planté le ' + fmtDate(p.date), p.semis && 'semé le ' + fmtDate(p.semis)].filter(Boolean).join(' · ')}</span></span><span class="n">×${g.length}</span></button>`;
+    }
+    const prev = here.filter(p => activeIn(p, pvYear - 1) && !activeIn(p, pvYear)), pf = new Map();
+    for (const p of prev) { const k = p.nom; pf.set(k, (pf.get(k) || { n: 0, p }) ); pf.get(k).n++; }
+    if (pf.size) {
+      h += `<h3>Ici en ${pvYear - 1}</h3>`;
+      for (const [, { n, p }] of pf) { const F = famOf(p.famille); h += `<button class="pv-row ghostrow" data-open="${esc(p.id)}"><i style="background:${F ? F.color : catOf(p.cat).color}"></i><span class="t"><b>${esc(p.nom)}</b><span>${F ? F.label.split(' (')[0] : ''}</span></span><span class="n">×${n}</span></button>`; }
+    }
+  }
+  $('pv-list').innerHTML = h;
+}
+$('pv-list').addEventListener('click', e => {
+  const rq = e.target.closest('[data-repiq]');
+  if (rq) { const p = plants.find(x => x.id === rq.dataset.repiq); if (p) { draft = JSON.parse(JSON.stringify(p)); $('btn-repiq').click(); } return; }
+  const o = e.target.closest('[data-open]'); if (!o) return;
+  const p = plants.find(x => x.id === o.dataset.open); if (p) { pvSel = p.id; renderPlan(); openPlant(p); }
+});
+window.addEventListener('resize', () => { if (pvZone) renderPlan(); });
+
+/* ===== Calendrier ===== */
+let meta = {};
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MOIS_C = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+// [mots-clés du nom ou débuts de nom latin, libellé, tâches "mois,mois|clé|action"]
+const KB_RAW = [
+  [['nashi', 'pyrus pyrifolia'], 'Nashi', ['1,2|taille|Taille d’hiver (hors gel), garder dards et lambourdes', '6|eclaircir|Éclaircir : 1 fruit par bouquet', '8,9|recolte|Récolte quand le fruit jaunit et se détache', '11|paillage|Pailler le pied']],
+  [['pommier', 'malus'], 'Pommier', ['1,2|taille|Taille d’hiver (hors gel)', '6|eclaircir|Éclaircir : 1 à 2 fruits par bouquet', '7|vert|Taille en vert : supprimer les gourmands', '8,9,10|recolte|Récolte (selon la variété)', '11|paillage|Pailler le pied']],
+  [['poirier', 'pyrus'], 'Poirier', ['1,2|taille|Taille d’hiver (hors gel)', '6|eclaircir|Éclaircir : 1 à 2 fruits par bouquet', '7|vert|Taille en vert', '8,9,10|recolte|Récolte un peu avant maturité, finir au fruitier', '11|paillage|Pailler le pied']],
+  [['cerisier', 'griottier', 'prunus avium', 'prunus cerasus'], 'Cerisier', ['6,7|recolte|Récolte (filet contre les oiseaux)', '8|taille|Taille légère après récolte (jamais en hiver)', '11|paillage|Pailler le pied']],
+  [['prunier', 'mirabellier', 'quetschier', 'reine claude', 'prunus domestica'], 'Prunier', ['6|eclaircir|Éclaircir si l’arbre est très chargé', '7,8,9|recolte|Récolte', '8|taille|Taille légère après récolte', '11|paillage|Pailler le pied']],
+  [['pecher', 'nectarinier', 'prunus persica'], 'Pêcher', ['2|cloque|Prévenir la cloque au débourrement (bouillie bordelaise)', '3|taille|Taille à la floraison', '5,6|eclaircir|Éclaircir : 1 fruit tous les 15 cm', '7,8,9|recolte|Récolte']],
+  [['abricotier', 'prunus armeniaca'], 'Abricotier', ['5|eclaircir|Éclaircir si très chargé', '7|recolte|Récolte', '8|taille|Taille légère après récolte']],
+  [['figuier', 'ficus'], 'Figuier', ['3|taille|Enlever le bois mort (ne pas raccourcir les rameaux)', '6,7|figuesfleurs|Récolte des figues-fleurs (variétés bifères)', '8,9|recolte|Récolte des figues d’automne', '11|paillage|Pailler épais au pied pour l’hiver']],
+  [['kiwi', 'actinidia'], 'Kiwi', ['1,2|taille|Taille d’hiver', '6,7|vert|Taille en vert, palissage', '10,11|recolte|Récolte avant les gelées, puis affinage']],
+  [['vigne', 'raisin', 'vitis'], 'Vigne', ['1,2|taille|Taille d’hiver', '5,6|ebourgeonner|Ébourgeonner et palisser', '9,10|recolte|Vendanges']],
+  [['noisetier', 'corylus'], 'Noisetier', ['1,2|cepee|Éclaircir la cépée (vieilles tiges, rejets)', '8,9|recolte|Récolte des noisettes']],
+  [['noyer', 'juglans'], 'Noyer', ['8|taille|Taille éventuelle (seulement en été)', '9,10|recolte|Ramasser les noix']],
+  [['chataignier', 'castanea'], 'Châtaignier', ['10|recolte|Ramasser les châtaignes']],
+  [['cognassier', 'cydonia'], 'Cognassier', ['1|taille|Taille légère', '10|recolte|Récolte des coings']],
+  [['neflier', 'mespilus'], 'Néflier', ['11|recolte|Récolte, puis laisser blettir']],
+  [['kaki', 'plaqueminier', 'diospyros'], 'Kaki', ['10,11|recolte|Récolte']],
+  [['arbousier', 'arbutus'], 'Arbousier', ['10,11,12|recolte|Récolte des arbouses', '11|hiver|Pailler, voile si grand froid (jeune plant)']],
+  [['amelanchier', 'amelanchier'], 'Amélanchier', ['6|recolte|Récolte']],
+  [['framboisier', 'rubus idaeus'], 'Framboisier', ['2|taille|Tailler les cannes ayant fructifié', '3|paillage|Pailler', '6,7,8,9|recolte|Récolte']],
+  [['murier', 'mure', 'ronce', 'rubus'], 'Mûrier', ['8,9|recolte|Récolte des mûres', '11|taille|Couper les cannes ayant fructifié']],
+  [['cassissier', 'cassis', 'ribes nigrum'], 'Cassissier', ['1,2|taille|Taille : supprimer le vieux bois', '3|paillage|Pailler', '7|recolte|Récolte']],
+  [['groseillier', 'ribes'], 'Groseillier', ['1,2|taille|Taille : aérer, supprimer le vieux bois', '3|paillage|Pailler', '6,7|recolte|Récolte']],
+  [['myrtillier', 'myrtille', 'vaccinium'], 'Myrtillier', ['3|paillage|Pailler (copeaux, aiguilles de pin)', '7,8|recolte|Récolte']],
+  [['camerise', 'lonicera caerulea'], 'Camerisier', ['5,6|recolte|Récolte']],
+  [['goji', 'lycium'], 'Goji', ['2|taille|Taille', '8,9,10|recolte|Récolte']],
+  [['sureau', 'sambucus'], 'Sureau', ['5,6|fleurs|Cueillir les fleurs (sirop, beignets)', '8,9|recolte|Récolte des baies (cuites)']],
+  [['fraisier', 'fraise', 'fragaria'], 'Fraisier', ['3|nettoyer|Nettoyer et pailler', '5,6,7|recolte|Récolte', '8|stolons|Couper ou repiquer les stolons']],
+  [['rhubarbe', 'rheum'], 'Rhubarbe', ['4,5,6|recolte|Récolte des tiges (pas après juillet)', '11|compost|Compost au pied']],
+  [['asperge', 'asparagus'], 'Asperge', ['4,5|recolte|Récolte (à partir de la 3e année)', '11|nettoyer|Couper les tiges sèches']],
+  [['artichaut', 'cardon', 'cynara'], 'Artichaut', ['6,7|recolte|Récolte', '11|hiver|Butter et protéger du froid']],
+  [['ail des ours', 'allium ursinum'], 'Ail des ours', ['3,4|recolte|Récolte des feuilles']],
+  [['poireau perpetuel', 'allium ampeloprasum'], 'Poireau perpétuel', ['8|diviser|Diviser les touffes', '10,11,12|recolte|Récolte']],
+  [['rocambole', 'allium × proliferum'], 'Oignon rocambole', ['7,8|recolte|Récolter et replanter les bulbilles']],
+  [['topinambour', 'helianthus tuberosus'], 'Topinambour', ['11,12,1,2|recolte|Récolte au fur et à mesure']],
+  [['thym', 'thymus'], 'Thym', ['4|taille|Tailler légèrement (pas dans le vieux bois)']],
+  [['lavande', 'lavandula'], 'Lavande', ['8|taille|Tailler après la floraison']],
+  [['romarin', 'rosmarinus', 'salvia rosmarinus'], 'Romarin', ['5|taille|Tailler après la floraison']],
+  [['sauge', 'salvia officinalis'], 'Sauge', ['4|taille|Tailler de moitié']],
+  [['menthe', 'mentha'], 'Menthe', ['10|nettoyer|Couper les tiges sèches']],
+  [['ciboulette', 'allium schoenoprasum'], 'Ciboulette', ['6|taille|Couper après la floraison', '3|diviser|Diviser les touffes (tous les 3 ans)']],
+  [['oseille', 'rumex'], 'Oseille', ['6|fleurs|Couper les tiges florales']],
+];
+const KB = KB_RAW.map(([keys, label, tl]) => ({ keys: keys.map(norm), label, tasks: tl.map(t => { const [m, k, a] = t.split('|'); return { m: m.split(',').map(Number), k: norm(label).replace(/ /g, '-') + ':' + k, a }; }) }));
+function kbFor(p) {
+  const n = ' ' + norm(p.nom) + ' ', la = norm(p.latin); let best = null, bl = 0;
+  for (const e of KB) for (const k of e.keys) { const hit = n.includes(' ' + k + ' ') || (la && la.startsWith(k)); if (hit && k.length > bl) { best = e; bl = k.length; } }
+  return best;
+}
+function plantTasks(p) {
+  if (isFinished(p) || p.etat === 'mort') return [];
+  const out = [], kb = kbFor(p), off = p.tachesOff || [];
+  if (kb) for (const t of kb.tasks) if (!off.includes(t.k)) out.push({ ...t, sp: kb.label, src: 'kb' });
+  for (const t of (p.taches || [])) out.push({ k: 'perso:' + t.id, a: t.a, m: t.m || [], date: t.date, sp: p.nom, src: 'perso', id: t.id });
+  return out;
+}
+const taskInMonth = (t, y, m) => t.date ? (yearOf(t.date) === y && +t.date.slice(5, 7) === m) : t.m.includes(m);
+const isDone = (p, t, y) => !!(p.fait && p.fait[t.k + '@' + (t.date ? 'x' : y)]);
+async function setDone(p, t, y, on) {
+  p.fait = p.fait || {}; const key = t.k + '@' + (t.date ? 'x' : y);
+  if (on) p.fait[key] = today(); else delete p.fait[key];
+  await idb.put(p);
+}
+function monthGroups(y, m) {
+  const groups = new Map();
+  for (const p of plants) for (const t of plantTasks(p)) {
+    if (!taskInMonth(t, y, m)) continue;
+    const gk = t.src === 'perso' ? t.k + ':' + p.id : t.k;
+    if (!groups.has(gk)) groups.set(gk, { key: gk, a: t.a, sp: t.sp, items: [] });
+    groups.get(gk).items.push({ p, t });
+  }
+  return [...groups.values()].sort((a, b) => a.sp.localeCompare(b.sp, 'fr') || a.a.localeCompare(b.a, 'fr'));
+}
+const needsAttention = p => !isFinished(p) && p.etat !== 'mort' && (['poser', 'serree', 'retirer'].includes(p.protection) || p.piquet === 'non');
+function asapItems() {
+  const out = [], now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
+  const lbl = { poser: 'Poser une protection anti-chevreuil', serree: 'Desserrer la protection', retirer: 'Retirer la protection' };
+  for (const p of plants) {
+    if (isFinished(p) || p.etat === 'mort') continue;
+    if (lbl[p.protection]) out.push({ p, a: lbl[p.protection], kind: 'prot' });
+    if (p.piquet === 'non') out.push({ p, a: 'Poser un piquet repère', kind: 'piq' });
+    for (const t of (p.taches || [])) if (t.date && t.date.slice(0, 7) < `${y}-${String(m).padStart(2, '0')}` && !isDone(p, { k: 'perso:' + t.id, date: t.date }, y)) out.push({ p, a: t.a + ' (en retard)', kind: 'late', t: { k: 'perso:' + t.id, date: t.date } });
+  }
+  return out;
+}
+const protectedPlants = () => plants.filter(p => !isFinished(p) && p.etat !== 'mort' && ['ok', 'serree'].includes(p.protection));
+let calY = new Date().getFullYear(), calM = new Date().getMonth() + 1;
+function updCalBadge() {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
+  let n = monthGroups(y, m).filter(g => !g.items.every(({ p, t }) => isDone(p, t, y))).length + asapItems().length;
+  if (protectedPlants().length && !meta[`tournee@${y}-${m}`]) n++;
+  $('cal-badge').hidden = !n; $('cal-badge').textContent = n > 99 ? '99+' : n;
+}
+$('btn-cal').onclick = () => { const n = new Date(); calY = n.getFullYear(); calM = n.getMonth() + 1; closeSheets(); $('calview').hidden = false; renderCal(); };
+$('cal-back').onclick = () => { $('calview').hidden = true; };
+$('cal-prev').onclick = () => { calM--; if (calM < 1) { calM = 12; calY--; } renderCal(); };
+$('cal-next').onclick = () => { calM++; if (calM > 12) { calM = 1; calY++; } renderCal(); };
+const calOpen = new Set();
+function renderCal() {
+  const now = new Date(), isNow = calY === now.getFullYear() && calM === now.getMonth() + 1;
+  $('cal-month').textContent = `${MOIS[calM - 1]} ${calY}`;
+  const groups = monthGroups(calY, calM), asap = isNow ? asapItems() : [], prot = protectedPlants();
+  const left = groups.filter(g => !g.items.every(({ p, t }) => isDone(p, t, calY))).length;
+  $('cal-sub').textContent = groups.length ? `${left} tâche${left > 1 ? 's' : ''} sur ${groups.length} à faire en ${MOIS[calM - 1]}` : `Rien de prévu en ${MOIS[calM - 1]}`;
+  const guide = p => p.lat != null ? `<button class="mini" data-guide="${esc(p.id)}">M’y guider</button>` : '';
+  let h = '';
+  if (asap.length) {
+    h += `<h3>À faire dès que possible</h3>`;
+    for (const it of asap) h += `<div class="pv-row"><i style="background:#f08a24"></i><button class="t" data-open="${esc(it.p.id)}" style="background:none;border:0;text-align:left;padding:0"><b>${esc(it.a)}</b><span>${esc(it.p.nom)}${it.p.variete ? ' · ' + esc(it.p.variete) : ''}${it.p.protVerif ? ' · vérifiée le ' + fmtDate(it.p.protVerif) : ''}</span></button>${guide(it.p)}</div>`;
+  }
+  if (prot.length) {
+    const mk = `tournee@${calY}-${calM}`, done = !!meta[mk], op = calOpen.has('tournee');
+    h += `<h3>Tournée du mois</h3><details class="cal-group${done ? ' done' : ''}" data-g="tournee"${op ? ' open' : ''}><summary><button class="chk" data-tour="${mk}" aria-pressed="${done}" aria-label="Fait">${done ? '✓' : ''}</button><span class="t"><b>Vérifier les protections anti-chevreuil</b><span>${prot.length} arbre${prot.length > 1 ? 's' : ''} protégé${prot.length > 1 ? 's' : ''} · liens, tuteurs, filets qui serrent</span></span></summary><div class="cal-plants">`;
+    for (const p of [...prot].sort((a, b) => me ? distBear(me, a).d - distBear(me, b).d : 0)) h += `<div class="row"><span>${esc(p.nom)}${p.protVerif ? ` <span class="small">· ${fmtDate(p.protVerif)}</span>` : ''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="mini" data-verif="${esc(p.id)}">Vérifiée</button>${guide(p)}</span></div>`;
+    h += `</div></details>`;
+  }
+  h += `<h3>Tâches de ${MOIS[calM - 1]}</h3>`;
+  if (!groups.length) h += `<div class="nores">Rien de prévu ce mois-ci. Les tâches viennent des fiches : plus il y a de plantes notées, plus le calendrier se remplit.</div>`;
+  for (const g of groups) {
+    const done = g.items.every(({ p, t }) => isDone(p, t, calY)), n = g.items.length, op = calOpen.has(g.key);
+    h += `<details class="cal-group${done ? ' done' : ''}" data-g="${esc(g.key)}"${op ? ' open' : ''}><summary><button class="chk" data-gdone="${esc(g.key)}" aria-pressed="${done}" aria-label="Fait">${done ? '✓' : ''}</button><span class="t"><b>${esc(g.a)}</b><span>${esc(g.sp)}${n > 1 ? ` · ${n} plantes` : ''}</span></span></summary><div class="cal-plants">`;
+    for (const { p, t } of g.items) h += `<div class="row"><span>${isDone(p, t, calY) ? '✓ ' : ''}${esc(p.nom)}${p.variete ? ' · ' + esc(p.variete) : ''}${p.zoneId ? ` <span class="small">· ${esc((zones.find(z => z.id === p.zoneId) || {}).nom || '')}</span>` : ''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="mini" data-open="${esc(p.id)}">Fiche</button>${guide(p)}</span></div>`;
+    h += `</div></details>`;
+  }
+  $('cal-list').innerHTML = h;
+}
+$('cal-list').addEventListener('toggle', e => { const d = e.target.closest && e.target.closest('details'); if (!d) return; d.open ? calOpen.add(d.dataset.g) : calOpen.delete(d.dataset.g); }, true);
+$('cal-list').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.gdone || b.dataset.tour) { e.preventDefault(); e.stopPropagation(); }
+  if (b.dataset.gdone) {
+    const g = monthGroups(calY, calM).find(x => x.key === b.dataset.gdone); if (!g) return;
+    const on = !g.items.every(({ p, t }) => isDone(p, t, calY));
+    for (const { p, t } of g.items) await setDone(p, t, calY, on);
+    renderCal(); updCalBadge();
+  } else if (b.dataset.tour) {
+    const k = b.dataset.tour, on = !meta[k];
+    if (on) { meta[k] = today(); for (const p of protectedPlants()) if (!p.protVerif || p.protVerif < today()) { p.protVerif = today(); await idb.put(p); } } else delete meta[k];
+    await idb.setMeta(k, meta[k]); renderCal(); updCalBadge();
+  } else if (b.dataset.verif) {
+    const p = plants.find(x => x.id === b.dataset.verif); if (p) { p.protVerif = today(); await idb.put(p); toast(`${p.nom} : vérifiée`); renderCal(); }
+  } else if (b.dataset.guide) {
+    const p = plants.find(x => x.id === b.dataset.guide); if (p) { $('calview').hidden = true; startFinder(p); }
+  } else if (b.dataset.open) {
+    const p = plants.find(x => x.id === b.dataset.open); if (p) openPlant(p);
+  }
+});
+
+/* Tâches dans la fiche */
+let tMonths = new Set();
+$('t-m').innerHTML = MOIS_C.map((c, i) => `<button type="button" data-m="${i + 1}" aria-pressed="false" title="${MOIS[i]}">${c}</button>`).join('');
+$('t-m').onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; const m = +b.dataset.m; tMonths.has(m) ? tMonths.delete(m) : tMonths.add(m); b.setAttribute('aria-pressed', tMonths.has(m)); };
+$('t-once').onchange = () => { $('t-date').hidden = !$('t-once').checked; $('t-m').style.opacity = $('t-once').checked ? .4 : 1; };
+$('btn-task-add').onclick = () => { tMonths = new Set(); $('t-a').value = ''; $('t-once').checked = false; $('t-date').hidden = true; $('t-m').style.opacity = 1; [...$('t-m').children].forEach(b => b.setAttribute('aria-pressed', 'false')); $('task-form').hidden = false; $('t-a').focus(); };
+$('t-cancel').onclick = () => { $('task-form').hidden = true; };
+$('t-ok').onclick = () => {
+  const a = $('t-a').value.trim(); if (!a) { $('t-a').focus(); return; }
+  const once = $('t-once').checked, d = $('t-date').value;
+  if (once && !d) { toast('Choisissez la date.'); return; }
+  if (!once && !tMonths.size) { toast('Choisissez au moins un mois.'); return; }
+  draft.taches = draft.taches || [];
+  draft.taches.push(once ? { id: 't' + Date.now().toString(36), a, date: d } : { id: 't' + Date.now().toString(36), a, m: [...tMonths].sort((x, y) => x - y) });
+  $('task-form').hidden = true; renderTaskList();
+};
+function renderTaskList() {
+  const p = draft; if (!p) return;
+  const zp = p.zoneId && zones.find(z => z.id === p.zoneId);
+  $('task-box').hidden = !!(zp && zp.type === 'serre');
+  const tmp = { ...p, nom: $('f-nom').value || p.nom, latin: $('f-latin').value || p.latin, cat: $('f-cat').value || p.cat, dateFin: '' };
+  const ts = plantTasks(tmp);
+  const MAB = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  const mtxt = t => t.date ? fmtDate(t.date) : t.m.map(m => MAB[m - 1]).join(', ');
+  $('task-list').innerHTML = ts.length ? ts.map(t => `<div class="row"><span>${esc(t.a)} <span class="m">· ${mtxt(t)}</span></span><button class="x" data-tdel="${esc(t.k)}" aria-label="Retirer cette tâche">×</button></div>`).join('') : '<div class="small">Aucune tâche. Les tâches courantes s’ajoutent toutes seules pour les espèces connues (taille, récolte…).</div>';
+}
+$('task-list').onclick = e => {
+  const b = e.target.closest('[data-tdel]'); if (!b) return; const k = b.dataset.tdel;
+  if (k.startsWith('perso:')) draft.taches = (draft.taches || []).filter(t => 'perso:' + t.id !== k);
+  else { draft.tachesOff = draft.tachesOff || []; if (!draft.tachesOff.includes(k)) draft.tachesOff.push(k); }
+  renderTaskList();
+};
+$('f-nom').addEventListener('change', renderTaskList);
+$('btn-protnow').onclick = () => { $('f-protdate').value = today(); };
+
+/* Export Google Agenda (.ics) */
+function icsText(t) { return String(t).replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
+function icsFold(line) { const out = []; let cur = ''; for (const ch of line) { if (new TextEncoder().encode(cur + ch).length > 73) { out.push(cur); cur = ' ' + ch; } else cur += ch; } out.push(cur); return out.join('\r\n'); }
+const pad2 = n => String(n).padStart(2, '0');
+function buildIcs() {
+  const now = new Date(), d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  d.setDate(d.getDate() + ((8 - d.getDay()) % 7));      // prochain lundi (ou aujourd'hui si lundi)
+  const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Carnet de La Joutade//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Jardin La Joutade', 'X-WR-TIMEZONE:Europe/Paris'];
+  let count = 0;
+  const asap = asapItems(), prot = protectedPlants();
+  for (let w = 0; w < 53; w++) {
+    const y = d.getFullYear(), m = d.getMonth() + 1;
+    const groups = monthGroups(y, m).filter(g => !g.items.every(({ p, t }) => isDone(p, t, y)));
+    const lines = [];
+    if (w === 0) for (const it of asap) lines.push(`• ${it.a} : ${it.p.nom}`);
+    if (d.getDate() <= 7 && prot.length) lines.push(`• Tournée des protections anti-chevreuil (${prot.length} arbres)`);
+    for (const g of groups) { const names = [...new Set(g.items.map(({ p }) => p.nom + (p.variete ? ' ' + p.variete : '')))]; lines.push(`• ${g.a} — ${g.sp}${names.length > 1 || names[0] !== g.sp ? ' : ' + names.slice(0, 8).join(', ') + (names.length > 8 ? ` +${names.length - 8}` : '') : ''}`); }
+    if (lines.length) {
+      const ds = `${y}${pad2(m)}${pad2(d.getDate())}`, n = lines.length;
+      const sum = `Jardin · ${n} chose${n > 1 ? 's' : ''} à faire (${MOIS[m - 1]})`;
+      L.push('BEGIN:VEVENT', `UID:jardin-${ds}@carnet-joutade`, `DTSTAMP:${stamp}`, `DTSTART:${ds}T080000`, `DTEND:${ds}T081500`, icsFold('SUMMARY:' + icsText(sum)), icsFold('DESCRIPTION:' + icsText(`Ce mois-ci au jardin (tâches pas encore cochées le ${fmtDate(today())}) :\n` + lines.join('\n'))), 'TRANSP:TRANSPARENT', 'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Jardin', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
+      count++;
+    }
+    d.setDate(d.getDate() + 7);
+  }
+  L.push('END:VCALENDAR');
+  return { text: L.join('\r\n') + '\r\n', count };
+}
+$('cal-ics').onclick = () => { const { count } = buildIcs(); $('ics-info').textContent = count ? `${count} lundis avec des choses à faire sur les 12 prochains mois.` : 'Aucune tâche pour l’instant : ajoutez des plantes d’abord.'; openSheet('sheet-ics'); };
+$('ics-close').onclick = () => closeSheets();
+$('ics-go').onclick = async () => { const { text } = buildIcs(); const ok = await downloadFile('jardin-la-joutade.ics', new Blob([text], { type: 'text/calendar' })); if (ok) toast('Fichier créé : importez-le dans Google Agenda'); };
+
 /* ===== Boot ===== */
 CATS.forEach(c => $('f-cat').insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.label}</option>`));
 ETATS.forEach(e => $('f-etat').insertAdjacentHTML('beforeend', `<option value="${e.id}">${e.label}</option>`));
-function renderAll() { renderStats(); renderMarkers(); if (!$('sheet-list').hidden) { renderChips(); renderList(); } }
+function renderAll() { updCalBadge(); refreshDatalist(); renderStats(); renderZones(); renderMarkers(); if (pvZone) renderPlan(); if (!$('sheet-list').hidden) { renderChips(); renderList(); } }
 (async () => {
-  try { plants = await idb.all(); } catch (e) { toast('Stockage indisponible : le carnet ne pourra pas enregistrer.'); }
+  try { plants = await idb.all(); zones = await idb.zones(); meta = await idb.metaAll(); } catch (e) { toast('Stockage indisponible : le carnet ne pourra pas enregistrer.'); }
   renderAll();
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   startWatch();
