@@ -318,6 +318,7 @@ button { cursor: pointer; }
   <div class="actions">
     <button class="primary" id="btn-save">Enregistrer</button>
     <button class="ghost" id="btn-close">Fermer</button>
+    <button class="ghost" id="btn-dup" hidden>Dupliquer</button>
     <button class="ghost danger" id="btn-del" hidden>Supprimer</button>
   </div>
   <div class="box" id="del-confirm" hidden style="margin-top:10px">
@@ -398,6 +399,7 @@ button { cursor: pointer; }
   <div class="actions">
     <button class="primary" id="z-save">Enregistrer</button>
     <button class="ghost" id="z-close">Fermer</button>
+    <button class="ghost" id="z-dup" hidden>Dupliquer</button>
     <button class="ghost danger" id="z-del" hidden>Supprimer</button>
   </div>
   <div class="box" id="z-del-confirm" hidden style="margin-top:10px">
@@ -790,7 +792,7 @@ async function fillPlantSheet() {
   const zp = p.zoneId ? zones.find(z => z.id === p.zoneId) : null, inSerre = zp && zp.type === 'serre';
   $('lbl-fin').hidden = !zp; $('lbl-qte').hidden = !inSerre;
   $('date-lbl').textContent = inSerre ? 'Semé le' : $('date-lbl').textContent;
-  $('btn-del').hidden = !p.id; $('del-confirm').hidden = true; $('photo-status').textContent = '';
+  $('btn-del').hidden = !p.id; $('btn-dup').hidden = !p.id || !!p.zoneId; $('del-confirm').hidden = true; $('photo-status').textContent = '';
   await updateBits();
 }
 async function updateBits() {
@@ -1051,7 +1053,7 @@ function fillZoneSheet() {
   $('z-nom').value = z.nom || ''; $('z-type').value = z.type || 'bac'; $('z-statut').value = z.statut || 'existant'; $('z-notes').value = z.notes || '';
   $('z-L').value = z.rect ? z.rect.L : ''; $('z-W').value = z.rect ? z.rect.W : ''; $('z-D').value = z.circle ? z.circle.D : '';
   $('z-shape').value = z.circle ? 'cercle' : z.pts && !z.rect ? 'free' : 'rect';
-  $('z-del').hidden = !z.id; $('z-del-confirm').hidden = true;
+  $('z-del').hidden = !z.id; $('z-dup').hidden = !z.id; $('z-del-confirm').hidden = true;
   zoneShapeInfo(); drawDraft();
 }
 function readZoneForm() { Object.assign(zdraft, { nom: $('z-nom').value.trim(), type: $('z-type').value, statut: $('z-statut').value, notes: $('z-notes').value.trim() }); }
@@ -1853,6 +1855,40 @@ $('tr-later').onclick = () => { closeSheets(); trDraft = null; };
 // place-cancel when choosing the terrain: back to the terrain sheet
 const _placeCancel = $('place-cancel').onclick;
 $('place-cancel').onclick = () => { if (!$('sheet-terrain').hidden || (trDraft && !draft)) { endPlace(); openTerrainKeep(); return; } _placeCancel(); };
+
+/* ===== Dupliquer ===== */
+function nextName(nom, taken) {
+  let m = String(nom).match(/^(.*?)\s*\((\d+)\)$/), fmt, i;
+  if (m) { fmt = n => `${m[1]} (${n})`; i = +m[2] + 1; }
+  else if ((m = String(nom).match(/^(.*?\s)(\d+)$/))) { fmt = n => m[1] + n; i = +m[2] + 1; }
+  else { fmt = n => `${nom} (${n})`; i = 2; }
+  while (taken.has(norm(fmt(i)))) i++;
+  return fmt(i);
+}
+$('z-dup').onclick = () => {
+  readZoneForm(); const src = JSON.parse(JSON.stringify(zdraft));
+  const copy = { type: src.type, statut: src.statut, notes: src.notes, nom: nextName(src.nom, new Set(zones.map(z => norm(z.nom)))) };
+  if (src.rect) {
+    const f = zoneFrame(src), g = toGeo(f, f.L / 2, f.W * 1.5 + 0.5);   // juste à côté, sur le grand côté
+    copy.rect = { ...src.rect, lat: g[0], lng: g[1] }; copy.pts = rectPts({ lat: g[0], lng: g[1] }, src.rect.L, src.rect.W, src.rect.angle);
+  } else if (src.circle) {
+    const k = mLng(src.circle.lat), d = src.circle.D + 0.5;
+    copy.circle = { ...src.circle, lng: src.circle.lng + d / k }; copy.pts = circlePts(copy.circle, src.circle.D);
+  } else {
+    const k = mLng(src.pts[0][0]); copy.pts = src.pts.map(([la, ln]) => [la, ln + 1 / k]);
+  }
+  zdraft = copy; fillZoneSheet();
+  if (copy.rect) { placeRect(); toast('Copie posée à côté : faites glisser la carte pour la placer'); }
+  else if (copy.circle) { placeCircle(); toast('Copie posée à côté : faites glisser la carte pour la placer'); }
+  else { openSheet('sheet-zone'); toast('Copie décalée d’1 m : retracez les coins si besoin'); }
+};
+$('btn-dup').onclick = () => {
+  readForm(); const s = draft;
+  draft = { nom: s.nom, latin: s.latin, cat: s.cat, variete: s.variete, portegreffe: s.portegreffe, provenance: s.provenance, famille: s.famille, origine: s.origine, etat: 'ok', date: s.date, notes: s.notes, taches: s.taches ? JSON.parse(JSON.stringify(s.taches)) : undefined, tachesOff: s.tachesOff ? [...s.tachesOff] : undefined };
+  fillPlantSheet(); openSheet('sheet-plant');
+  $('sp-title').textContent = 'Copie : ' + (s.nom || 'plante');
+  toast('Copie prête : placez-la au GPS ou sur la carte, puis Enregistrer');
+};
 
 /* ===== Boot ===== */
 CATS.forEach(c => $('f-cat').insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.label}</option>`));
