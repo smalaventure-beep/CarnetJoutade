@@ -194,6 +194,12 @@ button { cursor: pointer; }
 .months { display: flex; flex-wrap: wrap; gap: 4px; }
 .months button { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); font: 700 .78rem var(--f-body); }
 .months button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.fiche { background: var(--soft); border-color: transparent; }
+.fiche h4 { margin: 0; font: 400 1.15rem var(--f-display); }
+.fiche h4 i { color: var(--muted); font-size: .95rem; }
+.fiche dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: .86rem; }
+.fiche dt { font-weight: 700; color: var(--muted); }
+.fiche dd { margin: 0; }
 .tasklist { display: flex; flex-direction: column; gap: 4px; }
 .tasklist .row { justify-content: space-between; flex-wrap: nowrap; font-size: .88rem; }
 .tasklist .m { font: 500 .78rem var(--f-mono); color: var(--muted); }
@@ -266,6 +272,7 @@ button { cursor: pointer; }
     <label id="lbl-qte">Quantité<input class="field" id="f-qte" placeholder="12 godets, 1 plaque…"></label>
     <div class="warnbox full" id="rot-warn" hidden></div>
     <label class="full">Notes (pollinisateur, exposition, taille, récolte…)<textarea class="field" id="f-notes" rows="3"></textarea></label>
+    <div class="box full fiche" id="fiche-box" hidden></div>
     <div class="box full" id="prot-box">
       <strong>Protection et piquet</strong>
       <div class="row"><label style="flex:1">Anti-chevreuil<select class="field" id="f-prot"><option value="">—</option><option value="aucune">Aucune (pas besoin)</option><option value="poser">À poser</option><option value="ok">En place</option><option value="serree">Trop serrée, à desserrer</option><option value="retirer">À retirer</option></select></label>
@@ -775,7 +782,7 @@ async function fillPlantSheet() {
   $('f-nom').value = p.nom || ''; $('f-latin').value = p.latin || ''; $('f-cat').value = p.cat || 'arbre';
   $('f-var').value = p.variete || ''; $('f-pg').value = p.portegreffe || ''; $('f-date').value = p.date || ''; $('f-origine').value = p.origine || 'plantee'; syncOrigine();
   $('f-prov').value = p.provenance || ''; $('f-etat').value = p.etat || 'ok'; $('f-notes').value = p.notes || '';
-  $('f-prot').value = p.protection || ''; $('f-piq').value = p.piquet || ''; $('f-protdate').value = p.protVerif || ''; $('prot-box').hidden = !!p.zoneId; $('task-form').hidden = true; renderTaskList();
+  $('f-prot').value = p.protection || ''; $('f-piq').value = p.piquet || ''; $('f-protdate').value = p.protVerif || ''; $('prot-box').hidden = !!p.zoneId; $('task-form').hidden = true; $('f-cat').dataset.manual = p.id ? '1' : ''; renderTaskList(); renderFiche();
   $('f-fam').value = p.famille || ''; $('f-fam').dataset.manual = p.famille ? '1' : ''; $('f-latin').dataset.auto = ''; $('f-fin').value = p.dateFin || ''; $('f-qte').value = p.qte || '';
   const zp = p.zoneId ? zones.find(z => z.id === p.zoneId) : null, inSerre = zp && zp.type === 'serre';
   $('lbl-fin').hidden = !zp; $('lbl-qte').hidden = !inSerre;
@@ -1080,7 +1087,7 @@ function placeRect() {
   const L_ = num($('z-L').value), W_ = num($('z-W').value);
   if (!L_ || !W_) { toast('Indiquez la longueur et la largeur en mètres.'); $(L_ ? 'z-W' : 'z-L').focus(); return; }
   const r = zdraft.rect;
-  const start = r ? [r.lat, r.lng] : me ? [me.lat, me.lng] : null;
+  const start = r ? [r.lat, r.lng] : shapeStart();
   if (start) map.setView(start, Math.max(map.getZoom(), 21)); else map.setZoom(Math.max(map.getZoom(), 21));
   zwork = { L: L_, W: W_, angle: r ? r.angle : 0 };
   $('zb-angle').value = zwork.angle;
@@ -1090,7 +1097,7 @@ function placeCircle() {
   readZoneForm();
   const D = num($('z-D').value);
   if (!D) { toast('Indiquez le diamètre en mètres.'); $('z-D').focus(); return; }
-  const c = zdraft.circle, start = c ? [c.lat, c.lng] : me ? [me.lat, me.lng] : null;
+  const c = zdraft.circle, start = c ? [c.lat, c.lng] : shapeStart();
   if (start) map.setView(start, Math.max(map.getZoom(), 21)); else map.setZoom(Math.max(map.getZoom(), 21));
   zwork = { D };
   showZoneBar('cercle'); updCircle();
@@ -1104,10 +1111,16 @@ function updCircle() {
 function syncShape() { const v = $('z-shape').value; $('z-dims').hidden = v !== 'rect'; $('z-dimc').hidden = v !== 'cercle'; $('z-place').textContent = v === 'free' ? (zdraft && zdraft.pts && !zdraft.rect && !zdraft.circle ? 'Retracer les coins' : 'Tracer les coins') : (zdraft && zdraft.pts ? 'Ajuster sur la carte' : 'Placer sur la carte'); }
 $('z-shape').onchange = syncShape;
 $('z-place').onclick = () => { const v = $('z-shape').value; if (v === 'rect') placeRect(); else if (v === 'cercle') placeCircle(); else placeFree(); };
+// point de départ d'une nouvelle forme : là où l'on regarde si c'est sur le terrain, sinon le terrain (jamais la position GPS, qui peut être loin)
+function shapeStart() {
+  const c = map.getCenter(), t = meta.terrain;
+  if (!t || t.lat == null) return [c.lat, c.lng];
+  return distBear({ lat: c.lat, lng: c.lng }, t).d < 400 ? [c.lat, c.lng] : [t.lat, t.lng];
+}
 function placeFree() {
   readZoneForm();
   zwork = { pts: [] };
-  if (zdraft.pts && zdraft.pts.length) map.fitBounds(L.latLngBounds(zdraft.pts).pad(.8), { maxZoom: 21 }); else map.setZoom(Math.max(map.getZoom(), 20));
+  if (zdraft.pts && zdraft.pts.length) map.fitBounds(L.latLngBounds(zdraft.pts).pad(.8), { maxZoom: 21 }); else map.setView(shapeStart(), Math.max(map.getZoom(), 20));
   showZoneBar('free'); updFree();
 }
 map.on('move', () => { if (zmode === 'rect') updRect(); else if (zmode === 'cercle') updCircle(); });
@@ -1508,51 +1521,101 @@ window.addEventListener('resize', () => { if (pvZone) renderPlan(); });
 let meta = {};
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const MOIS_C = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
-// [mots-clés du nom ou débuts de nom latin, libellé, tâches "mois,mois|clé|action"]
-const KB_RAW = [
-  [['nashi', 'pyrus pyrifolia'], 'Nashi', ['1,2|taille|Taille d’hiver (hors gel), garder dards et lambourdes', '6|eclaircir|Éclaircir : 1 fruit par bouquet', '8,9|recolte|Récolte quand le fruit jaunit et se détache', '11|paillage|Pailler le pied']],
-  [['pommier', 'malus'], 'Pommier', ['1,2|taille|Taille d’hiver (hors gel)', '6|eclaircir|Éclaircir : 1 à 2 fruits par bouquet', '7|vert|Taille en vert : supprimer les gourmands', '8,9,10|recolte|Récolte (selon la variété)', '11|paillage|Pailler le pied']],
-  [['poirier', 'pyrus'], 'Poirier', ['1,2|taille|Taille d’hiver (hors gel)', '6|eclaircir|Éclaircir : 1 à 2 fruits par bouquet', '7|vert|Taille en vert', '8,9,10|recolte|Récolte un peu avant maturité, finir au fruitier', '11|paillage|Pailler le pied']],
-  [['cerisier', 'griottier', 'prunus avium', 'prunus cerasus'], 'Cerisier', ['6,7|recolte|Récolte (filet contre les oiseaux)', '8|taille|Taille légère après récolte (jamais en hiver)', '11|paillage|Pailler le pied']],
-  [['prunier', 'mirabellier', 'quetschier', 'reine claude', 'prunus domestica'], 'Prunier', ['6|eclaircir|Éclaircir si l’arbre est très chargé', '7,8,9|recolte|Récolte', '8|taille|Taille légère après récolte', '11|paillage|Pailler le pied']],
-  [['pecher', 'nectarinier', 'prunus persica'], 'Pêcher', ['2|cloque|Prévenir la cloque au débourrement (bouillie bordelaise)', '3|taille|Taille à la floraison', '5,6|eclaircir|Éclaircir : 1 fruit tous les 15 cm', '7,8,9|recolte|Récolte']],
-  [['abricotier', 'prunus armeniaca'], 'Abricotier', ['5|eclaircir|Éclaircir si très chargé', '7|recolte|Récolte', '8|taille|Taille légère après récolte']],
-  [['figuier', 'ficus'], 'Figuier', ['3|taille|Enlever le bois mort (ne pas raccourcir les rameaux)', '6,7|figuesfleurs|Récolte des figues-fleurs (variétés bifères)', '8,9|recolte|Récolte des figues d’automne', '11|paillage|Pailler épais au pied pour l’hiver']],
-  [['kiwi', 'actinidia'], 'Kiwi', ['1,2|taille|Taille d’hiver', '6,7|vert|Taille en vert, palissage', '10,11|recolte|Récolte avant les gelées, puis affinage']],
-  [['vigne', 'raisin', 'vitis'], 'Vigne', ['1,2|taille|Taille d’hiver', '5,6|ebourgeonner|Ébourgeonner et palisser', '9,10|recolte|Vendanges']],
-  [['noisetier', 'corylus'], 'Noisetier', ['1,2|cepee|Éclaircir la cépée (vieilles tiges, rejets)', '8,9|recolte|Récolte des noisettes']],
-  [['noyer', 'juglans'], 'Noyer', ['8|taille|Taille éventuelle (seulement en été)', '9,10|recolte|Ramasser les noix']],
-  [['chataignier', 'castanea'], 'Châtaignier', ['10|recolte|Ramasser les châtaignes']],
-  [['cognassier', 'cydonia'], 'Cognassier', ['1|taille|Taille légère', '10|recolte|Récolte des coings']],
-  [['neflier', 'mespilus'], 'Néflier', ['11|recolte|Récolte, puis laisser blettir']],
-  [['kaki', 'plaqueminier', 'diospyros'], 'Kaki', ['10,11|recolte|Récolte']],
-  [['arbousier', 'arbutus'], 'Arbousier', ['10,11,12|recolte|Récolte des arbouses', '11|hiver|Pailler, voile si grand froid (jeune plant)']],
-  [['amelanchier', 'amelanchier'], 'Amélanchier', ['6|recolte|Récolte']],
-  [['framboisier', 'rubus idaeus'], 'Framboisier', ['2|taille|Tailler les cannes ayant fructifié', '3|paillage|Pailler', '6,7,8,9|recolte|Récolte']],
-  [['murier', 'mure', 'ronce', 'rubus'], 'Mûrier', ['8,9|recolte|Récolte des mûres', '11|taille|Couper les cannes ayant fructifié']],
-  [['cassissier', 'cassis', 'ribes nigrum'], 'Cassissier', ['1,2|taille|Taille : supprimer le vieux bois', '3|paillage|Pailler', '7|recolte|Récolte']],
-  [['groseillier', 'ribes'], 'Groseillier', ['1,2|taille|Taille : aérer, supprimer le vieux bois', '3|paillage|Pailler', '6,7|recolte|Récolte']],
-  [['myrtillier', 'myrtille', 'vaccinium'], 'Myrtillier', ['3|paillage|Pailler (copeaux, aiguilles de pin)', '7,8|recolte|Récolte']],
-  [['camerise', 'lonicera caerulea'], 'Camerisier', ['5,6|recolte|Récolte']],
-  [['goji', 'lycium'], 'Goji', ['2|taille|Taille', '8,9,10|recolte|Récolte']],
-  [['sureau', 'sambucus'], 'Sureau', ['5,6|fleurs|Cueillir les fleurs (sirop, beignets)', '8,9|recolte|Récolte des baies (cuites)']],
-  [['fraisier', 'fraise', 'fragaria'], 'Fraisier', ['3|nettoyer|Nettoyer et pailler', '5,6,7|recolte|Récolte', '8|stolons|Couper ou repiquer les stolons']],
-  [['rhubarbe', 'rheum'], 'Rhubarbe', ['4,5,6|recolte|Récolte des tiges (pas après juillet)', '11|compost|Compost au pied']],
-  [['asperge', 'asparagus'], 'Asperge', ['4,5|recolte|Récolte (à partir de la 3e année)', '11|nettoyer|Couper les tiges sèches']],
-  [['artichaut', 'cardon', 'cynara'], 'Artichaut', ['6,7|recolte|Récolte', '11|hiver|Butter et protéger du froid']],
-  [['ail des ours', 'allium ursinum'], 'Ail des ours', ['3,4|recolte|Récolte des feuilles']],
-  [['poireau perpetuel', 'allium ampeloprasum'], 'Poireau perpétuel', ['8|diviser|Diviser les touffes', '10,11,12|recolte|Récolte']],
-  [['rocambole', 'allium × proliferum'], 'Oignon rocambole', ['7,8|recolte|Récolter et replanter les bulbilles']],
-  [['topinambour', 'helianthus tuberosus'], 'Topinambour', ['11,12,1,2|recolte|Récolte au fur et à mesure']],
-  [['thym', 'thymus'], 'Thym', ['4|taille|Tailler légèrement (pas dans le vieux bois)']],
-  [['lavande', 'lavandula'], 'Lavande', ['8|taille|Tailler après la floraison']],
-  [['romarin', 'rosmarinus', 'salvia rosmarinus'], 'Romarin', ['5|taille|Tailler après la floraison']],
-  [['sauge', 'salvia officinalis'], 'Sauge', ['4|taille|Tailler de moitié']],
-  [['menthe', 'mentha'], 'Menthe', ['10|nettoyer|Couper les tiges sèches']],
-  [['ciboulette', 'allium schoenoprasum'], 'Ciboulette', ['6|taille|Couper après la floraison', '3|diviser|Diviser les touffes (tous les 3 ans)']],
-  [['oseille', 'rumex'], 'Oseille', ['6|fleurs|Couper les tiges florales']],
+// Base d'espèces : fiche conseil + tâches du calendrier.
+// n: mots du nom courant ou débuts du nom latin ; l: libellé ; la: nom latin ; c: catégorie ; f: famille (légumes)
+// p: pollinisation ; r: rusticité ; e: exposition et sol ; t: taille ; h: récolte ; x: à savoir ; k: tâches "mois,mois|clé|action"
+const SPECIES = [
+  // ---------- Arbres fruitiers classiques
+  { n: ['pommier', 'malus'], l: 'Pommier', la: 'Malus domestica', c: 'arbre', p: 'Autostérile pour la plupart des variétés : il faut une autre variété (ou un pommier sauvage, d’ornement) qui fleurit en même temps à moins de 50 m.', r: 'Très rustique, jusqu’à -25 °C.', e: 'Soleil ou mi-ombre légère, sol frais et profond, pas trop sec.', t: 'Taille de formation les premières années, puis taille d’hiver légère et taille en vert en juillet.', h: 'D’août (variétés précoces) à octobre ; les variétés tardives se gardent au fruitier.', k: ['1,2|taille|Taille d’hiver (hors gel)', '6|eclaircir|Éclaircir : 1 à 2 fruits par bouquet', '7|vert|Taille en vert : supprimer les gourmands', '8,9,10|recolte|Récolte (selon la variété)', '11|paillage|Pailler le pied'] },
+  { n: ['nashi', 'pyrus pyrifolia'], l: 'Nashi', la: 'Pyrus pyrifolia', c: 'arbre', p: 'Partiellement autofertile : bien meilleure récolte avec un 2e nashi ou un poirier européen à floraison précoce.', r: 'Jusqu’à -20 °C, mais floraison précoce sensible aux gelées tardives.', e: 'Soleil, sol frais et drainé.', t: 'En hiver, comme un poirier ; il fructifie sur dards et lambourdes, les garder.', h: 'Août-septembre, le fruit mûrit sur l’arbre (contrairement aux poires).', x: 'Éclaircir sévèrement pour avoir de beaux fruits.', k: ['1,2|taille|Taille d’hiver (hors gel), garder dards et lambourdes', '6|eclaircir|Éclaircir : 1 fruit par bouquet', '8,9|recolte|Récolte quand le fruit jaunit et se détache', '11|paillage|Pailler le pied'] },
+  { n: ['poirier', 'pyrus'], l: 'Poirier', la: 'Pyrus communis', c: 'arbre', p: 'Majoritairement autostérile : prévoir une 2e variété compatible à proximité.', r: 'Jusqu’à -20 °C ; fleurs sensibles aux gelées tardives.', e: 'Soleil, sol profond, frais, pas trop calcaire (sinon porte-greffe franc).', t: 'Taille d’hiver, taille en vert en été ; garder les lambourdes.', h: 'Juillet à octobre selon la variété ; cueillir un peu avant maturité et finir au fruitier.', k: ['1,2|taille|Taille d’hiver (hors gel)', '6|eclaircir|Éclaircir : 1 à 2 fruits par bouquet', '7|vert|Taille en vert', '8,9,10|recolte|Récolte un peu avant maturité, finir au fruitier', '11|paillage|Pailler le pied'] },
+  { n: ['cerisier', 'bigarreautier', 'prunus avium'], l: 'Cerisier', la: 'Prunus avium', c: 'arbre', p: 'Souvent autostérile (sauf Stella, Lapins, Sunburst…) : prévoir un 2e cerisier compatible.', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol drainé ; craint l’eau stagnante.', t: 'Peu de taille, et seulement après la récolte (jamais en hiver : risque de gomme et de maladies).', h: 'Juin-juillet ; un filet contre les oiseaux aide beaucoup.', k: ['6,7|recolte|Récolte (filet contre les oiseaux)', '8|taille|Taille légère après récolte (jamais en hiver)', '11|paillage|Pailler le pied'] },
+  { n: ['griottier', 'cerisier acide', 'prunus cerasus'], l: 'Griottier', la: 'Prunus cerasus', c: 'arbre', p: 'Autofertile, et bon pollinisateur des cerisiers.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, peu exigeant.', t: 'Après récolte : renouveler les rameaux qui ont fructifié.', h: 'Juillet ; cerises acidulées pour clafoutis, confitures, griottes à l’eau-de-vie.', k: ['7|recolte|Récolte des griottes', '8|taille|Taille légère après récolte'] },
+  { n: ['prunier', 'mirabellier', 'mirabelle', 'quetschier', 'reine claude', 'prunus domestica', 'prunus insititia'], l: 'Prunier', la: 'Prunus domestica', c: 'arbre', p: 'Variable : Reine-Claude d’Oullins, Mirabelle de Nancy, Quetsche sont autofertiles ; beaucoup d’autres ont besoin d’un 2e prunier.', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol pas trop sec ; tolère le calcaire.', t: 'Peu de taille, en fin d’été après récolte.', h: 'Juillet à septembre selon la variété.', k: ['6|eclaircir|Éclaircir si l’arbre est très chargé', '7,8,9|recolte|Récolte', '8|taille|Taille légère après récolte', '11|paillage|Pailler le pied'] },
+  { n: ['pecher', 'nectarinier', 'brugnonier', 'prunus persica'], l: 'Pêcher', la: 'Prunus persica', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -15 °C ; floraison très précoce, sensible au gel.', e: 'Plein soleil, abrité, sol drainé.', t: 'Il fructifie sur le bois de l’année précédente : tailler chaque printemps pour renouveler.', h: 'Juillet à septembre.', x: 'La cloque est son gros souci : planter des variétés résistantes, ou traiter au débourrement.', k: ['2|cloque|Prévenir la cloque au débourrement (bouillie bordelaise)', '3|taille|Taille à la floraison', '5,6|eclaircir|Éclaircir : 1 fruit tous les 15 cm', '7,8,9|recolte|Récolte'] },
+  { n: ['abricotier', 'prunus armeniaca'], l: 'Abricotier', la: 'Prunus armeniaca', c: 'arbre', p: 'Autofertile pour la plupart des variétés.', r: 'L’arbre tient -20 °C, mais la floraison très précoce gèle souvent.', e: 'Plein soleil, abrité (contre un mur), sol drainé, même calcaire.', t: 'Légère, après la récolte.', h: 'Juillet.', k: ['5|eclaircir|Éclaircir si très chargé', '7|recolte|Récolte', '8|taille|Taille légère après récolte'] },
+  { n: ['amandier', 'prunus dulcis'], l: 'Amandier', la: 'Prunus dulcis', c: 'arbre', p: 'Souvent autostérile (Lauranne, Ferragnès…) : vérifier, ou planter 2 variétés.', r: 'Jusqu’à -20 °C, mais fleurit en février-mars : préférer des variétés tardives.', e: 'Plein soleil, sol sec et drainé, calcaire accepté.', t: 'Très peu, après la récolte.', h: 'Septembre, quand la coque s’ouvre.', k: ['9|recolte|Récolte des amandes'] },
+  { n: ['figuier', 'ficus'], l: 'Figuier', la: 'Ficus carica', c: 'arbre', p: 'Les variétés cultivées en France sont autofertiles.', r: 'Jusqu’à -12/-15 °C adulte ; repart de la souche s’il gèle.', e: 'Plein soleil, abrité du vent, idéal contre un mur au sud ; supporte le sec.', t: 'Le moins possible, en fin d’hiver ; ne pas raccourcir les rameaux au printemps (on perd les figues-fleurs).', h: 'Août-septembre ; variétés bifères : aussi des figues-fleurs fin juin-juillet.', k: ['3|taille|Enlever le bois mort (ne pas raccourcir les rameaux)', '6,7|figuesfleurs|Récolte des figues-fleurs (variétés bifères)', '8,9|recolte|Récolte des figues d’automne', '11|paillage|Pailler épais au pied pour l’hiver'] },
+  { n: ['cognassier', 'coing', 'cydonia'], l: 'Cognassier', la: 'Cydonia oblonga', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol frais ; chlorose en sol très calcaire.', t: 'Légère en hiver : aérer le centre.', h: 'Octobre ; coings à cuire (gelée, pâte de coing).', k: ['1|taille|Taille légère', '10|recolte|Récolte des coings'] },
+  { n: ['neflier', 'mespilus'], l: 'Néflier', la: 'Mespilus germanica', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Soleil ou mi-ombre, peu exigeant.', t: 'Presque aucune.', h: 'Novembre, puis laisser blettir quelques semaines sur la paille.', k: ['11|recolte|Récolte, puis laisser blettir'] },
+  { n: ['kaki', 'plaqueminier', 'diospyros kaki'], l: 'Kaki', la: 'Diospyros kaki', c: 'arbre', p: 'La plupart des variétés produisent seules (fruits sans pépins).', r: 'Jusqu’à -15/-18 °C.', e: 'Plein soleil, abrité, sol frais et drainé.', t: 'Légère : formation, bois mort.', h: 'Octobre-novembre ; les variétés astringentes se mangent blettes.', k: ['10,11|recolte|Récolte des kakis'] },
+  { n: ['plaqueminier lotus', 'diospyros lotus'], l: 'Plaqueminier lotus', la: 'Diospyros lotus', c: 'arbre', p: 'Dioïque : il faut un pied mâle et un pied femelle.', r: 'Jusqu’à -20 °C.', e: 'Soleil, peu exigeant.', t: 'Aucune nécessaire.', h: 'Novembre, petits fruits à manger blets.', k: ['11|recolte|Récolte des fruits blets'] },
+  { n: ['azerolier', 'azerole', 'crataegus azarolus'], l: 'Azerolier', la: 'Crataegus azarolus', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -15/-20 °C.', e: 'Plein soleil, sol sec et calcaire très bien supporté.', t: 'Très peu ; épineux, porter des gants.', h: 'Septembre-octobre : petites « pommes » jaunes ou rouges au goût de pomme acidulée, crues ou en gelée.', x: 'Croissance lente, très résistant à la sécheresse : parfait sans arrosage.', k: ['9,10|recolte|Récolte des azeroles'] },
+  { n: ['cormier', 'sorbier domestique', 'sorbus domestica'], l: 'Cormier', la: 'Sorbus domestica', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil, sol sec et calcaire accepté.', t: 'Aucune.', h: 'Octobre, cormes à laisser blettir.', x: 'Croissance très lente, arbre à très longue vie.', k: ['10|recolte|Récolte des cormes, à blettir'] },
+  { n: ['alisier', 'sorbus torminalis'], l: 'Alisier torminal', la: 'Sorbus torminalis', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol calcaire accepté.', t: 'Aucune.', h: 'Octobre-novembre, alises blettes.', k: ['10,11|recolte|Récolte des alises'] },
+  { n: ['murier', 'murier blanc', 'murier noir', 'morus'], l: 'Mûrier (arbre)', la: 'Morus sp.', c: 'arbre', p: 'Autofertile.', r: 'Mûrier blanc jusqu’à -25 °C, mûrier noir vers -15 °C.', e: 'Plein soleil, supporte bien la sécheresse.', t: 'Légère en hiver ; saigne s’il est taillé au printemps.', h: 'Juin à août, étaler une bâche sous l’arbre.', k: ['6,7,8|recolte|Récolte des mûres (bâche sous l’arbre)'] },
+  { n: ['asiminier', 'asimina'], l: 'Asiminier', la: 'Asimina triloba', c: 'arbre', p: 'Autostérile : planter 2 variétés différentes.', r: 'Jusqu’à -25 °C.', e: 'Mi-ombre jeune puis soleil, sol frais, riche et un peu acide ; craint la sécheresse.', t: 'Aucune.', h: 'Septembre-octobre, quand le fruit cède sous le doigt ; goût de banane-mangue.', k: ['9,10|recolte|Récolte des asimines'] },
+  { n: ['jujubier', 'ziziphus'], l: 'Jujubier', la: 'Ziziphus jujuba', c: 'arbre', p: 'Partiellement autofertile, mieux avec 2 variétés.', r: 'Jusqu’à -15/-20 °C.', e: 'Plein soleil, chaleur, sol drainé ; très résistant à la sécheresse.', t: 'Légère, rejets à supprimer.', h: 'Septembre-octobre ; jujubes croquantes comme une petite pomme.', k: ['9,10|recolte|Récolte des jujubes'] },
+  { n: ['grenadier', 'punica'], l: 'Grenadier', la: 'Punica granatum', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -12 °C.', e: 'Plein soleil, abrité, sol drainé ; aime la chaleur.', t: 'Supprimer les rejets du pied.', h: 'Octobre, si l’été a été chaud.', k: ['10|recolte|Récolte des grenades'] },
+  { n: ['olivier', 'olea'], l: 'Olivier', la: 'Olea europaea', c: 'arbre', p: 'Partiellement autofertile, mieux avec 2 variétés.', r: 'Jusqu’à -10/-12 °C selon la variété.', e: 'Plein soleil, sol très drainé ; craint l’humidité en hiver.', t: 'Au printemps : aérer le centre.', h: 'Novembre-décembre (rarement abondant en Dordogne).', k: ['3,4|taille|Taille d’aération', '11,12|recolte|Récolte des olives'] },
+  { n: ['bibacier', 'neflier du japon', 'eriobotrya'], l: 'Néflier du Japon', la: 'Eriobotrya japonica', c: 'arbre', p: 'Autofertile.', r: 'L’arbre tient -12 °C, mais il fleurit en hiver : les fruits gèlent souvent.', e: 'Plein soleil, abrité.', t: 'Légère.', h: 'Mai-juin, après un hiver doux.', k: ['5,6|recolte|Récolte des nèfles du Japon'] },
+  { n: ['feijoa', 'goyavier', 'acca sellowiana'], l: 'Feijoa', la: 'Acca sellowiana', c: 'arbre', p: 'Partiellement autofertile, mieux avec 2 pieds.', r: 'Jusqu’à -12 °C.', e: 'Soleil, abrité, sol drainé ; persistant.', t: 'Légère au printemps.', h: 'Novembre, fruits tombés à ramasser et laisser mûrir.', k: ['11|recolte|Ramasser les feijoas tombés'] },
+  { n: ['poivrier', 'zanthoxylum'], l: 'Poivrier du Sichuan', la: 'Zanthoxylum sp.', c: 'arbre', p: 'Selon l’espèce : Z. simulans fructifie souvent seul, Z. piperitum est dioïque (mâle + femelle). Vérifier l’étiquette.', r: 'Jusqu’à -20 °C.', e: 'Soleil ou mi-ombre, sol drainé ; supporte bien le sec une fois installé.', t: 'Légère, attention aux épines.', h: 'Septembre-octobre : cueillir les grappes quand les baies rougissent et s’ouvrent, faire sécher, garder les coques.', x: 'Les jeunes feuilles s’utilisent aussi en cuisine.', k: ['9,10|recolte|Récolte et séchage des baies'] },
+  { n: ['cudranier', 'cudrania', 'maclura tricuspidata', 'murier chinois', 'murier fraise'], l: 'Cudranier', la: 'Maclura tricuspidata', c: 'arbre', p: 'Plutôt dioïque, mais les pieds femelles donnent souvent des fruits (sans graines) même sans mâle.', r: 'Jusqu’à -20 °C.', e: 'Plein soleil, sol drainé ; supporte bien la sécheresse une fois installé.', t: 'Légère en hiver ; épineux, porter des gants. Peut drageonner.', h: 'Septembre-octobre : fruits rouge foncé, à cueillir bien mûrs et mous ; goût entre la figue et la mûre.', x: 'Lent à démarrer, il met quelques années avant de fructifier.', k: ['9,10|recolte|Récolte des fruits bien mûrs'] },
+  { n: ['cedratier', 'cedrat', 'citrus medica'], l: 'Cédratier', la: 'Citrus medica', c: 'arbre', p: 'Autofertile.', r: 'Le plus frileux des agrumes : vers -3/-5 °C. En Dordogne, en pot à rentrer hors gel, ou très abrité avec voile.', e: 'Plein soleil, abrité, sol drainé.', t: 'Légère au printemps.', h: 'Automne-hiver ; écorce confite, zestes.', k: ['10|abri|Rentrer à l’abri ou protéger (voile) avant les gelées', '4|sortie|Ressortir après les dernières gelées'] },
+  { n: ['citronnier', 'yuzu', 'citrus junos', 'citrus'], l: 'Agrume', la: 'Citrus sp.', c: 'arbre', p: 'Autofertile.', r: 'Variable : yuzu jusqu’à -10 °C, citronnier vers -3/-5 °C.', e: 'Plein soleil, abrité, sol drainé.', t: 'Légère au printemps.', h: 'Automne-hiver.', k: ['10|abri|Protéger du froid (voile) ou rentrer à l’abri'] },
+  { n: ['poncirus', 'oranger trifolie', 'citronnier epineux'], l: 'Oranger trifolié', la: 'Poncirus trifoliata', c: 'haie', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Soleil, tout sol drainé.', t: 'En haie défensive, après floraison.', h: 'Octobre, fruits très acides (jus, sirop).', k: ['10|recolte|Récolte des fruits'] },
+  { n: ['noyer', 'juglans'], l: 'Noyer', la: 'Juglans regia', c: 'arbre', p: 'Autofertile, mais fleurs mâles et femelles décalées : meilleure récolte avec un 2e noyer.', r: 'Jusqu’à -25 °C ; débourrement sensible aux gelées tardives.', e: 'Soleil, sol profond.', t: 'Seulement en été (il saigne beaucoup en hiver).', h: 'Septembre-octobre, ramasser au sol.', x: 'Ses racines et feuilles freinent la pousse de certaines plantes autour (juglone).', k: ['8|taille|Taille éventuelle (seulement en été)', '9,10|recolte|Ramasser les noix'] },
+  { n: ['noisetier', 'coudrier', 'corylus'], l: 'Noisetier', la: 'Corylus avellana', c: 'arbre', p: 'Autostérile : 2 variétés différentes (pollen porté par le vent en hiver).', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, peu exigeant.', t: 'Éclaircir la cépée en hiver (vieilles tiges, rejets en trop).', h: 'Août-septembre, avant les écureuils.', k: ['1,2|cepee|Éclaircir la cépée (vieilles tiges, rejets)', '8,9|recolte|Récolte des noisettes'] },
+  { n: ['chataignier', 'castanea'], l: 'Châtaignier', la: 'Castanea sativa', c: 'arbre', p: 'Autostérile : il faut au moins 2 châtaigniers.', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol acide et drainé ; déteste le calcaire.', t: 'Formation seulement.', h: 'Octobre, ramasser au sol.', k: ['10|recolte|Ramasser les châtaignes'] },
+  { n: ['arbousier', 'arbutus'], l: 'Arbousier', la: 'Arbutus unedo', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -12/-15 °C adulte ; jeune plant plus fragile.', e: 'Soleil ou mi-ombre, sol drainé ; supporte la sécheresse.', t: 'Aucune nécessaire.', h: 'Octobre à décembre, fruits rouges et mous.', k: ['10,11,12|recolte|Récolte des arbouses', '11|hiver|Pailler, voile si grand froid (jeune plant)'] },
+  // ---------- Petits fruits et arbustes
+  { n: ['amelanchier'], l: 'Amélanchier', la: 'Amelanchier sp.', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -30 °C.', e: 'Soleil ou mi-ombre, peu exigeant.', t: 'Presque aucune.', h: 'Juin, baies bleu-noir au goût d’amande (filet contre les oiseaux).', k: ['6|recolte|Récolte'] },
+  { n: ['framboisier', 'framboise', 'rubus idaeus'], l: 'Framboisier', la: 'Rubus idaeus', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol frais et riche, paillé.', t: 'Non remontant : couper les cannes qui ont fructifié après récolte. Remontant : tout couper au ras en fin d’hiver.', h: 'Juin-juillet, et jusqu’aux gelées pour les remontants.', k: ['2|taille|Tailler les cannes ayant fructifié', '3|paillage|Pailler', '6,7,8,9|recolte|Récolte'] },
+  { n: ['mure framboise', 'tayberry', 'loganberry', 'boysenberry'], l: 'Mûre-framboise', la: 'Rubus hybride', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol frais, palissage.', t: 'Couper les cannes qui ont fructifié, palisser les nouvelles.', h: 'Juillet-août.', k: ['7,8|recolte|Récolte', '9|taille|Couper les cannes ayant fructifié, palisser'] },
+  { n: ['murier ronce', 'murier sans epines', 'mure', 'ronce', 'rubus'], l: 'Ronce fruitière', la: 'Rubus fruticosus', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Soleil, palissage conseillé.', t: 'Couper les cannes qui ont fructifié.', h: 'Août-septembre.', k: ['8,9|recolte|Récolte des mûres', '11|taille|Couper les cannes ayant fructifié'] },
+  { n: ['cassissier', 'cassis', 'ribes nigrum'], l: 'Cassissier', la: 'Ribes nigrum', c: 'petit', p: 'Partiellement autofertile : mieux avec 2 variétés.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol frais ; paillage indispensable.', t: 'En hiver : supprimer le bois de plus de 3 ans.', h: 'Juillet ; les feuilles en infusion.', k: ['1,2|taille|Taille : supprimer le vieux bois', '3|paillage|Pailler', '7|recolte|Récolte'] },
+  { n: ['groseillier a maquereau', 'ribes uva crispa'], l: 'Groseillier à maquereau', la: 'Ribes uva-crispa', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Mi-ombre appréciée, sol frais.', t: 'Aérer le centre en hiver (épineux).', h: 'Juillet.', k: ['1,2|taille|Taille : aérer le centre', '7|recolte|Récolte'] },
+  { n: ['caseillier', 'josta', 'ribes nidigrolaria'], l: 'Caseillier', la: 'Ribes × nidigrolaria', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, vigoureux.', t: 'Supprimer le vieux bois en hiver.', h: 'Juillet.', k: ['1,2|taille|Taille : supprimer le vieux bois', '7|recolte|Récolte'] },
+  { n: ['groseillier', 'groseille', 'ribes'], l: 'Groseillier', la: 'Ribes rubrum', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol frais, paillé.', t: 'En hiver : aérer, supprimer le bois de plus de 3 ans.', h: 'Juin-juillet.', k: ['1,2|taille|Taille : aérer, supprimer le vieux bois', '3|paillage|Pailler', '6,7|recolte|Récolte'] },
+  { n: ['myrtillier', 'myrtille', 'vaccinium corymbosum', 'vaccinium'], l: 'Myrtillier', la: 'Vaccinium corymbosum', c: 'petit', p: 'Partiellement autofertile : 2 variétés donnent bien plus.', r: 'Jusqu’à -25 °C.', e: 'Sol acide obligatoire (terre de bruyère), frais ; soleil ou mi-ombre.', t: 'Supprimer les vieilles branches à partir de 4-5 ans.', h: 'Juillet-août.', k: ['3|paillage|Pailler (copeaux, aiguilles de pin)', '7,8|recolte|Récolte'] },
+  { n: ['camerise', 'camerisier', 'lonicera caerulea'], l: 'Camerisier', la: 'Lonicera caerulea', c: 'petit', p: 'Autostérile : planter 2 variétés.', r: 'Jusqu’à -35 °C.', e: 'Soleil ou mi-ombre, sol frais.', t: 'Presque aucune.', h: 'Mai-juin, parmi les premiers fruits de l’année.', k: ['5,6|recolte|Récolte'] },
+  { n: ['goji', 'lycium'], l: 'Goji', la: 'Lycium barbarum', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Plein soleil, sol drainé ; supporte la sécheresse.', t: 'Taille en fin d’hiver pour contenir, drageonne.', h: 'Août à octobre.', k: ['2|taille|Taille', '8,9,10|recolte|Récolte'] },
+  { n: ['sureau', 'sambucus'], l: 'Sureau', la: 'Sambucus nigra', c: 'haie', p: 'Partiellement autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, tout sol.', t: 'Rabattre les vieilles tiges en hiver si besoin.', h: 'Fleurs en mai-juin, baies en août-septembre (toujours cuites).', k: ['5,6|fleurs|Cueillir les fleurs (sirop, beignets)', '8,9|recolte|Récolte des baies (cuites)'] },
+  { n: ['argousier', 'hippophae'], l: 'Argousier', la: 'Hippophae rhamnoides', c: 'petit', p: 'Dioïque : 1 pied mâle pour 5 à 6 femelles.', r: 'Jusqu’à -30 °C.', e: 'Plein soleil, sol pauvre et drainé ; fixe l’azote, drageonne.', t: 'Peu ; récolter en coupant des rameaux fructifères.', h: 'Septembre-octobre, baies très riches en vitamine C (jus).', k: ['9,10|recolte|Récolte des baies'] },
+  { n: ['cornouiller male', 'cornus mas'], l: 'Cornouiller mâle', la: 'Cornus mas', c: 'petit', p: 'Partiellement autofertile, mieux avec 2 pieds.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, calcaire accepté.', t: 'Aucune.', h: 'Août-septembre, cornouilles à manger bien mûres.', k: ['8,9|recolte|Récolte des cornouilles'] },
+  { n: ['aronia'], l: 'Aronia', la: 'Aronia melanocarpa', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -30 °C.', e: 'Soleil ou mi-ombre, peu exigeant.', t: 'Supprimer les vieilles tiges.', h: 'Août-septembre, baies astringentes (jus, confitures).', k: ['8,9|recolte|Récolte'] },
+  { n: ['eleagnus', 'chalef', 'goumi', 'elaeagnus'], l: 'Éléagnus', la: 'Elaeagnus sp.', c: 'haie', p: 'E. multiflora (goumi) autofertile ; E. umbellata mieux avec 2 pieds.', r: 'Jusqu’à -20/-25 °C (E. × ebbingei vers -15 °C).', e: 'Soleil ou mi-ombre, sol pauvre ; fixe l’azote.', t: 'Taille de haie après fructification.', h: 'Ebbingei : avril-mai ; goumi : juin-juillet ; umbellata : octobre.', k: ['5,6,10|recolte|Récolte (selon l’espèce)'] },
+  { n: ['eglantier', 'cynorhodon', 'rosa canina', 'rosier rugueux', 'rosa rugosa'], l: 'Églantier', la: 'Rosa canina', c: 'haie', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil, tout sol.', t: 'Aucune.', h: 'Octobre-novembre, cynorhodons après les premières gelées.', k: ['10,11|recolte|Récolte des cynorhodons'] },
+  { n: ['aubepine', 'crataegus'], l: 'Aubépine', la: 'Crataegus monogyna', c: 'haie', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, tout sol.', t: 'Taille de haie en fin d’hiver.', h: 'Fleurs au printemps, cenelles en automne.', k: [] },
+  { n: ['kiwai', 'mini kiwi', 'actinidia arguta'], l: 'Kiwaï', la: 'Actinidia arguta', c: 'grimp', p: 'Dioïque sauf « Issaï » : un mâle pour plusieurs femelles.', r: 'Jusqu’à -25 °C ; jeunes pousses sensibles aux gelées tardives.', e: 'Soleil ou mi-ombre, sol frais, support solide.', t: 'Taille d’hiver et taille en vert, comme le kiwi.', h: 'Septembre-octobre, petits kiwis à peau lisse.', k: ['1,2|taille|Taille d’hiver', '6,7|vert|Taille en vert, palissage', '9,10|recolte|Récolte'] },
+  { n: ['kiwi', 'actinidia'], l: 'Kiwi', la: 'Actinidia deliciosa', c: 'grimp', p: 'Dioïque : 1 mâle pour 5 à 8 femelles (sauf « Jenny », autofertile).', r: 'Jusqu’à -15 °C ; jeunes pousses gélives.', e: 'Soleil, abrité du vent, sol frais ; craint la sécheresse.', t: 'Taille d’hiver sévère, taille en vert en été.', h: 'Octobre-novembre avant les gelées, puis affinage au fruitier.', k: ['1,2|taille|Taille d’hiver', '6,7|vert|Taille en vert, palissage', '10,11|recolte|Récolte avant les gelées, puis affinage'] },
+  { n: ['vigne', 'raisin', 'vitis'], l: 'Vigne', la: 'Vitis vinifera', c: 'grimp', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Plein soleil, sol drainé.', t: 'Taille d’hiver, ébourgeonnage et palissage au printemps.', h: 'Septembre-octobre.', k: ['1,2|taille|Taille d’hiver', '5,6|ebourgeonner|Ébourgeonner et palisser', '9,10|recolte|Vendanges'] },
+  { n: ['akebia'], l: 'Akébia', la: 'Akebia quinata', c: 'grimp', p: 'Partiellement autostérile : 2 pieds différents pour avoir des fruits.', r: 'Jusqu’à -20 °C.', e: 'Soleil ou mi-ombre, support.', t: 'Contenir après floraison.', h: 'Septembre-octobre, fruits violets à pulpe sucrée.', k: ['9,10|recolte|Récolte'] },
+  { n: ['schisandra', 'schizandra'], l: 'Schisandra', la: 'Schisandra chinensis', c: 'grimp', p: 'Souvent dioïque : prévoir mâle et femelle.', r: 'Jusqu’à -25 °C.', e: 'Mi-ombre, sol frais.', t: 'Légère en hiver.', h: 'Septembre, grappes rouges « aux 5 saveurs ».', k: ['9|recolte|Récolte'] },
+  { n: ['houblon', 'humulus'], l: 'Houblon', la: 'Humulus lupulus', c: 'grimp', p: 'Dioïque : seuls les pieds femelles font des cônes.', r: 'Jusqu’à -25 °C.', e: 'Soleil, sol riche, support haut.', t: 'Tout couper au ras en fin d’hiver.', h: 'Jets au printemps (comme des asperges), cônes en août-septembre.', k: ['2|taille|Couper au ras', '4|jets|Cueillir les jeunes jets', '8,9|recolte|Récolte des cônes'] },
+  // ---------- Vivaces comestibles et légumes perpétuels
+  { n: ['fraisier', 'fraise', 'fragaria'], l: 'Fraisier', la: 'Fragaria × ananassa', c: 'couvre', f: 'ros', p: 'Autofertile.', r: 'Jusqu’à -15 °C et plus.', e: 'Soleil, sol riche et paillé.', t: 'Couper les stolons, renouveler les pieds tous les 3-4 ans.', h: 'Mai à juillet, jusqu’en automne pour les remontants.', k: ['3|nettoyer|Nettoyer et pailler', '5,6,7|recolte|Récolte', '8|stolons|Couper ou repiquer les stolons'] },
+  { n: ['rhubarbe', 'rheum'], l: 'Rhubarbe', la: 'Rheum rhabarbarum', c: 'vivace', f: 'pol', p: '—', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol riche.', t: 'Couper les hampes florales.', h: 'Avril à juin (pas après juillet) ; les feuilles sont toxiques.', k: ['4,5,6|recolte|Récolte des tiges (pas après juillet)', '11|compost|Compost au pied'] },
+  { n: ['asperge', 'asparagus'], l: 'Asperge', la: 'Asparagus officinalis', c: 'legume', p: '—', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol léger et drainé.', t: 'Couper les tiges sèches en automne.', h: 'Avril-mai, à partir de la 3e année.', k: ['4,5|recolte|Récolte (à partir de la 3e année)', '11|nettoyer|Couper les tiges sèches'] },
+  { n: ['artichaut', 'cardon', 'cynara'], l: 'Artichaut', la: 'Cynara cardunculus', c: 'legume', f: 'ast', p: '—', r: 'Vers -10 °C : butter et protéger.', e: 'Plein soleil, sol riche et drainé.', t: 'Couper les tiges après récolte.', h: 'Juin-juillet.', k: ['6,7|recolte|Récolte', '11|hiver|Butter et protéger du froid'] },
+  { n: ['chou perpetuel', 'chou daubenton', 'chou vivace'], l: 'Chou perpétuel', la: 'Brassica oleracea', c: 'legume', f: 'bra', p: '—', r: 'Jusqu’à -15 °C.', e: 'Soleil ou mi-ombre, sol riche.', t: 'Bouturer pour multiplier.', h: 'Feuilles toute l’année.', k: ['3|bouture|Bouturer quelques tiges'] },
+  { n: ['poireau perpetuel', 'allium ampeloprasum'], l: 'Poireau perpétuel', la: 'Allium ampeloprasum', c: 'legume', f: 'ama', p: '—', r: 'Très rustique.', e: 'Soleil, tout sol.', t: 'Diviser les touffes.', h: 'Automne à printemps.', k: ['8|diviser|Diviser les touffes', '10,11,12|recolte|Récolte'] },
+  { n: ['rocambole', 'oignon rocambole', 'allium proliferum'], l: 'Oignon rocambole', la: 'Allium × proliferum', c: 'legume', f: 'ama', p: '—', r: 'Très rustique.', e: 'Soleil, sol drainé.', t: '—', h: 'Bulbilles en été (à replanter), feuilles toute l’année.', k: ['7,8|recolte|Récolter et replanter les bulbilles'] },
+  { n: ['ail des ours', 'allium ursinum'], l: 'Ail des ours', la: 'Allium ursinum', c: 'vivace', f: 'ama', p: '—', r: 'Très rustique.', e: 'Mi-ombre ou ombre, sol frais et humifère.', t: '—', h: 'Feuilles en mars-avril.', x: 'Ne pas confondre avec le muguet ou le colchique (toxiques) : l’ail des ours sent l’ail quand on froisse la feuille.', k: ['3,4|recolte|Récolte des feuilles'] },
+  { n: ['topinambour', 'helianthus tuberosus'], l: 'Topinambour', la: 'Helianthus tuberosus', c: 'legume', f: 'ast', p: '—', r: 'Très rustique.', e: 'Soleil, tout sol ; très envahissant.', t: '—', h: 'Novembre à mars, au fur et à mesure.', k: ['11,12,1,2|recolte|Récolte au fur et à mesure'] },
+  { n: ['crosne', 'stachys affinis'], l: 'Crosne', la: 'Stachys affinis', c: 'legume', p: '—', r: 'Rustique.', e: 'Soleil ou mi-ombre, sol frais et léger.', t: '—', h: 'Novembre à mars.', k: ['11,12,1,2,3|recolte|Récolte des crosnes'] },
+  { n: ['oca', 'oxalis tuberosa'], l: 'Oca du Pérou', la: 'Oxalis tuberosa', c: 'legume', p: '—', r: 'Feuillage gélif ; tubercules à récolter.', e: 'Soleil, sol léger.', t: '—', h: 'Novembre, après que le gel a détruit le feuillage.', k: ['11|recolte|Récolte des tubercules'] },
+  { n: ['yacon', 'poire de terre', 'smallanthus'], l: 'Yacon', la: 'Smallanthus sonchifolius', c: 'legume', f: 'ast', p: '—', r: 'Gélif : rentrer les souches hors gel.', e: 'Soleil, sol riche et frais.', t: '—', h: 'Octobre-novembre.', k: ['10,11|recolte|Récolte, rentrer les souches hors gel'] },
+  { n: ['oseille', 'rumex'], l: 'Oseille', la: 'Rumex acetosa', c: 'vivace', f: 'pol', p: '—', r: 'Très rustique.', e: 'Soleil ou mi-ombre.', t: 'Couper les tiges florales.', h: 'Avril à octobre.', k: ['6|fleurs|Couper les tiges florales'] },
+  { n: ['consoude', 'symphytum'], l: 'Consoude', la: 'Symphytum officinale', c: 'vivace', p: '—', r: 'Très rustique.', e: 'Tout sol frais.', t: 'Couper les feuilles 3-4 fois par an.', h: 'Feuilles pour purin, paillage et compost (pas à manger).', k: ['5,7,9|coupe|Couper les feuilles (purin, paillage)'] },
+  { n: ['liveche', 'levisticum'], l: 'Livèche', la: 'Levisticum officinale', c: 'arom', f: 'api', p: '—', r: 'Très rustique.', e: 'Soleil ou mi-ombre, sol frais.', t: '—', h: 'Feuilles au goût de céleri, d’avril à octobre.', k: [] },
+  { n: ['ciboulette', 'allium schoenoprasum'], l: 'Ciboulette', la: 'Allium schoenoprasum', c: 'arom', f: 'ama', p: '—', r: 'Très rustique.', e: 'Soleil ou mi-ombre.', t: 'Couper après floraison.', h: 'Mars à novembre.', k: ['6|taille|Couper après la floraison', '3|diviser|Diviser les touffes (tous les 3 ans)'] },
+  { n: ['ciboule', 'allium fistulosum'], l: 'Ciboule', la: 'Allium fistulosum', c: 'arom', f: 'ama', p: '—', r: 'Très rustique.', e: 'Soleil.', t: '—', h: 'Toute l’année.', k: [] },
+  { n: ['thym', 'thymus'], l: 'Thym', la: 'Thymus vulgaris', c: 'arom', f: 'lam', p: '—', r: 'Jusqu’à -15 °C ; craint l’humidité.', e: 'Plein soleil, sol sec et pauvre.', t: 'Légère après floraison, pas dans le vieux bois.', h: 'Toute l’année.', k: ['4|taille|Tailler légèrement (pas dans le vieux bois)'] },
+  { n: ['lavande', 'lavandula'], l: 'Lavande', la: 'Lavandula angustifolia', c: 'arom', f: 'lam', p: '—', r: 'Jusqu’à -15 °C.', e: 'Plein soleil, sol sec, même calcaire.', t: 'Après floraison, sans couper dans le vieux bois.', h: 'Fleurs en juillet.', k: ['7|recolte|Couper les fleurs', '8|taille|Tailler après la floraison'] },
+  { n: ['romarin', 'rosmarinus', 'salvia rosmarinus'], l: 'Romarin', la: 'Salvia rosmarinus', c: 'arom', f: 'lam', p: '—', r: 'Jusqu’à -10/-15 °C, mieux en sol sec.', e: 'Plein soleil, sol drainé.', t: 'Après la floraison.', h: 'Toute l’année.', k: ['5|taille|Tailler après la floraison'] },
+  { n: ['sauge', 'salvia officinalis'], l: 'Sauge', la: 'Salvia officinalis', c: 'arom', f: 'lam', p: '—', r: 'Jusqu’à -15 °C.', e: 'Plein soleil, sol drainé.', t: 'Rabattre de moitié au printemps.', h: 'Toute l’année.', k: ['4|taille|Tailler de moitié'] },
+  { n: ['menthe', 'mentha'], l: 'Menthe', la: 'Mentha sp.', c: 'arom', f: 'lam', p: '—', r: 'Très rustique.', e: 'Mi-ombre, sol frais ; très envahissante.', t: 'Couper les tiges sèches.', h: 'Avril à octobre.', k: ['10|nettoyer|Couper les tiges sèches'] },
+  { n: ['melisse', 'melissa'], l: 'Mélisse', la: 'Melissa officinalis', c: 'arom', f: 'lam', p: '—', r: 'Très rustique.', e: 'Soleil ou mi-ombre.', t: 'Rabattre après floraison (se ressème beaucoup).', h: 'Mai à septembre.', k: ['7|taille|Rabattre après la floraison'] },
+  { n: ['origan', 'marjolaine', 'origanum'], l: 'Origan', la: 'Origanum vulgare', c: 'arom', f: 'lam', p: '—', r: 'Très rustique.', e: 'Plein soleil, sol sec.', t: 'Rabattre en fin d’hiver.', h: 'Juin à septembre.', k: ['3|taille|Rabattre'] },
+  { n: ['estragon', 'artemisia dracunculus'], l: 'Estragon', la: 'Artemisia dracunculus', c: 'arom', f: 'ast', p: '—', r: 'Estragon français vers -15 °C, craint l’humidité.', e: 'Soleil, sol drainé.', t: 'Rabattre en automne.', h: 'Mai à septembre.', k: ['10|taille|Rabattre et pailler'] },
+  { n: ['hysope', 'hyssopus'], l: 'Hysope', la: 'Hyssopus officinalis', c: 'arom', f: 'lam', p: '—', r: 'Jusqu’à -15 °C.', e: 'Plein soleil, sol sec.', t: 'Après floraison.', h: 'Été.', k: [] },
+  { n: ['sarriette', 'satureja'], l: 'Sarriette', la: 'Satureja montana', c: 'arom', f: 'lam', p: '—', r: 'Jusqu’à -15 °C.', e: 'Plein soleil, sol sec.', t: 'Légère au printemps.', h: 'Été.', k: [] },
+  { n: ['verveine citronnelle', 'verveine citronnee', 'aloysia'], l: 'Verveine citronnée', la: 'Aloysia citrodora', c: 'arom', p: '—', r: 'Vers -5/-8 °C : pailler, abriter.', e: 'Plein soleil, abrité.', t: 'Rabattre au printemps.', h: 'Juin à septembre.', k: ['11|hiver|Pailler épais, voile si grand froid', '4|taille|Rabattre'] },
+  { n: ['laurier sauce', 'laurier noble', 'laurus'], l: 'Laurier-sauce', la: 'Laurus nobilis', c: 'arom', p: 'Dioïque (sans importance pour les feuilles).', r: 'Jusqu’à -12/-15 °C.', e: 'Soleil ou mi-ombre.', t: 'Quand on veut, pour contenir.', h: 'Feuilles toute l’année.', k: [] },
 ];
-const KB = KB_RAW.map(([keys, label, tl]) => ({ keys: keys.map(norm), label, tasks: tl.map(t => { const [m, k, a] = t.split('|'); return { m: m.split(',').map(Number), k: norm(label).replace(/ /g, '-') + ':' + k, a }; }) }));
+const KB = SPECIES.map(e => ({ ...e, keys: e.n.map(norm), label: e.l, tasks: (e.k || []).map(t => { const [m, k, a] = t.split('|'); return { m: m.split(',').map(Number), k: norm(e.l).replace(/ /g, '-') + ':' + k, a }; }) }));
 function kbFor(p) {
   const n = ' ' + norm(p.nom) + ' ', la = norm(p.latin); let best = null, bl = 0;
   for (const e of KB) for (const k of e.keys) { const hit = n.includes(' ' + k + ' ') || (la && la.startsWith(k)); if (hit && k.length > bl) { best = e; bl = k.length; } }
@@ -1691,6 +1754,27 @@ $('task-list').onclick = e => {
 };
 $('f-nom').addEventListener('change', renderTaskList);
 $('btn-protnow').onclick = () => { $('f-protdate').value = today(); };
+
+/* Fiche conseil */
+function renderFiche() {
+  if (!draft) return;
+  const e = kbFor({ nom: $('f-nom').value, latin: $('f-latin').value });
+  const box = $('fiche-box');
+  if (!e) { box.hidden = true; return; }
+  const row = (k, v) => v && v !== '—' ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : '';
+  box.innerHTML = `<h4>Fiche conseil : ${esc(e.l)} <i>${esc(e.la)}</i></h4><dl>${row('Pollinisation', e.p)}${row('Rusticité', e.r)}${row('Exposition', e.e)}${row('Taille', e.t)}${row('Récolte', e.h)}${row('À savoir', e.x)}</dl>`;
+  box.hidden = false;
+}
+function autoSpecies() {
+  const e = kbFor({ nom: $('f-nom').value, latin: '' }); if (!e) return;
+  const lat = $('f-latin');
+  if (!lat.value || lat.value === lat.dataset.auto) { lat.value = e.la; lat.dataset.auto = e.la; }
+  if (draft && !draft.id && !draft.zoneId && $('f-cat').dataset.manual !== '1' && e.c) { $('f-cat').value = e.c; $('f-cat').onchange && $('f-cat').onchange(); $('f-cat').dataset.manual = ''; }
+  if (e.f && !$('f-fam').dataset.manual) $('f-fam').value = e.f;
+}
+$('f-nom').addEventListener('input', () => { autoSpecies(); renderFiche(); renderTaskList(); });
+$('f-latin').addEventListener('change', renderFiche);
+$('f-cat').addEventListener('change', () => { $('f-cat').dataset.manual = '1'; renderTaskList(); });
 
 /* Export Google Agenda (.ics) */
 function icsText(t) { return String(t).replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n'); }
