@@ -1,5 +1,5 @@
 // Carnet de jardin — service worker : appli hors ligne + cache des morceaux de carte
-const APP = 'joutade-app-v9';
+const APP = 'joutade-app-v10';
 const TILES = 'joutade-tuiles-v1';
 const MAX_TILES = 6000;
 const SHELL = ['./', 'index.html', 'leaflet.js', 'leaflet.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
@@ -39,7 +39,7 @@ self.addEventListener('fetch', e => {
 
   if (url.origin === self.location.origin) {
     // appli : réseau d'abord (pour recevoir les mises à jour), cache si hors ligne
-    e.respondWith(fetch(req).then(res => {
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(APP).then(c => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match(req).then(r => r || caches.match('index.html'))));
