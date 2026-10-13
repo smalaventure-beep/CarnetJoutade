@@ -188,7 +188,8 @@ button { cursor: pointer; }
     <label>Catégorie<select class="field" id="f-cat"></select></label>
     <label>Variété / cultivar<input class="field" id="f-var" placeholder="Reinette du Mans"></label>
     <label id="lbl-pg">Porte-greffe<input class="field" id="f-pg" placeholder="MM106, franc…"></label>
-    <label>Planté le<input class="field" id="f-date" type="date"></label>
+    <label>Origine<select class="field" id="f-origine"><option value="plantee">Plantée</option><option value="spontanee">Pousse spontanée</option></select></label>
+    <label id="lbl-date"><span id="date-lbl">Planté le</span><input class="field" id="f-date" type="date"></label>
     <label>Provenance<input class="field" id="f-prov" placeholder="Pépinière, bouture, don…"></label>
     <label>État<select class="field" id="f-etat"></select></label>
     <label class="full">Notes (pollinisateur, exposition, taille, récolte…)<textarea class="field" id="f-notes" rows="3"></textarea></label>
@@ -263,6 +264,7 @@ const CATS = [
   { id: 'petit', label: 'Petit fruitier', color: '#8e3b6e' },
   { id: 'vivace', label: 'Vivace comestible', color: '#4f8a3a' },
   { id: 'arom', label: 'Aromatique', color: '#2a8a80' },
+  { id: 'foret', label: 'Arbre forestier', color: '#5a4a32' },
   { id: 'haie', label: 'Arbuste / haie', color: '#97762a' },
   { id: 'grimp', label: 'Grimpante', color: '#4b5fa8' },
   { id: 'couvre', label: 'Couvre-sol', color: '#6f8f22' },
@@ -481,7 +483,7 @@ async function fillPlantSheet() {
   const p = draft;
   $('sp-title').textContent = p.id ? (p.nom || 'Fiche') : 'Nouvelle plante';
   $('f-nom').value = p.nom || ''; $('f-latin').value = p.latin || ''; $('f-cat').value = p.cat || 'arbre';
-  $('f-var').value = p.variete || ''; $('f-pg').value = p.portegreffe || ''; $('f-date').value = p.date || '';
+  $('f-var').value = p.variete || ''; $('f-pg').value = p.portegreffe || ''; $('f-date').value = p.date || ''; $('f-origine').value = p.origine || 'plantee'; syncOrigine();
   $('f-prov').value = p.provenance || ''; $('f-etat').value = p.etat || 'ok'; $('f-notes').value = p.notes || '';
   $('btn-del').hidden = !p.id; $('del-confirm').hidden = true; $('photo-status').textContent = '';
   await updateBits();
@@ -498,11 +500,11 @@ async function updateBits() {
 function readForm() {
   Object.assign(draft, {
     nom: $('f-nom').value.trim(), latin: $('f-latin').value.trim(), cat: $('f-cat').value, variete: $('f-var').value.trim(),
-    portegreffe: $('f-cat').value === 'arbre' ? $('f-pg').value.trim() : '', date: $('f-date').value, provenance: $('f-prov').value.trim(),
+    portegreffe: $('f-cat').value === 'arbre' ? $('f-pg').value.trim() : '', date: $('f-date').value, origine: $('f-origine').value, provenance: $('f-prov').value.trim(),
     etat: $('f-etat').value, notes: $('f-notes').value.trim(),
   });
   const ll = parseLatLng($('f-gps').value);
-  if (ll && (draft.lat == null || Math.abs(ll.lat - draft.lat) > 1e-7 || Math.abs(ll.lng - draft.lng) > 1e-7)) { draft.lat = ll.lat; draft.lng = ll.lng; draft.acc = null; }
+  if (ll && (draft.lat == null || Math.abs(ll.lat - draft.lat) > 6e-7 || Math.abs(ll.lng - draft.lng) > 6e-7)) { draft.lat = ll.lat; draft.lng = ll.lng; draft.acc = null; }
   if (!ll) { draft.lat = null; draft.lng = null; draft.acc = null; }
 }
 function openPlant(p) { draft = JSON.parse(JSON.stringify(p)); fillPlantSheet(); openSheet('sheet-plant'); renderMarkers(); }
@@ -525,6 +527,8 @@ $('btn-del-yes').onclick = async () => {
   await idb.del(draft.id); if (draft.photoId) await idb.delPhoto(draft.photoId);
   plants = plants.filter(p => p.id !== draft.id); draft = null; closeSheets(); renderAll(); toast('Fiche supprimée');
 };
+function syncOrigine() { $('date-lbl').textContent = $('f-origine').value === 'spontanee' ? 'Repérée le (facultatif)' : 'Planté le'; }
+$('f-origine').onchange = () => { if ($('f-origine').value === 'spontanee' && draft && !draft.id) $('f-date').value = ''; syncOrigine(); };
 $('f-cat').onchange = () => $('lbl-pg').hidden = $('f-cat').value !== 'arbre';
 $('btn-regps').onclick = () => { readForm(); draft._reopen = true; startCapture(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: r.acc }); delete draft._reopen; updateBits(); openSheet('sheet-plant'); }); };
 $('btn-replace').onclick = () => { readForm(); startPlace(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: null }); updateBits(); openSheet('sheet-plant'); }, draft.lat != null ? [draft.lat, draft.lng] : null); };
@@ -576,7 +580,7 @@ async function renderList() {
   const html = [];
   for (const p of rows) {
     const c = catOf(p.cat), e = etatOf(p.etat), u = await photoUrl(p.photoId);
-    const meta = [c.label, p.variete && `« ${esc(p.variete)} »`, p.portegreffe && `sur ${esc(p.portegreffe)}`, p.date && `planté le ${fmtDate(p.date)} (${since(p.date)})`].filter(Boolean).join(' · ');
+    const meta = [c.label, p.variete && `« ${esc(p.variete)} »`, p.portegreffe && `sur ${esc(p.portegreffe)}`, p.origine === 'spontanee' ? (p.date ? `pousse spontanée, repérée le ${fmtDate(p.date)}` : 'pousse spontanée') : p.date && `planté le ${fmtDate(p.date)} (${since(p.date)})`].filter(Boolean).join(' · ');
     let where = p.lat == null ? 'pas encore placée' : '';
     if (p.lat != null && me) { const { d, brg } = distBear(me, p); where = `à ${d < 10 ? d.toFixed(1) : Math.round(d)} m · ${dirName(brg)}`; }
     html.push(`<button class="tag" data-id="${esc(p.id)}" style="--c:${c.color}"><span class="notch"></span><span class="body"><div class="name">${esc(p.nom)}</div>${p.latin ? `<div class="latin">${esc(p.latin)}</div>` : ''}<div class="meta">${meta}</div>${where ? `<div class="dist">${where}</div>` : ''}</span><span class="side2"><span class="state ${e.id}">${e.label}</span>${u ? `<img src="${u}" alt="">` : ''}</span></button>`);
@@ -613,9 +617,9 @@ $('btn-export').onclick = async () => {
   $('backup-status').textContent = ok ? lastBackupText() : 'Export annulé.';
 };
 $('btn-csv').onclick = () => {
-  const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['date', 'Planté le'], ['provenance', 'Provenance'], ['etat', 'État'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
+  const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['origine', 'Origine'], ['date', 'Planté / repéré le'], ['provenance', 'Provenance'], ['etat', 'État'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
   const cell = v => { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
+  const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : k === 'origine' ? (p.origine === 'spontanee' ? 'Pousse spontanée' : 'Plantée') : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
   downloadFile('carnet-joutade.csv', new Blob(['﻿' + [cols.map(c => c[1]).join(';'), ...rows].join('\n')], { type: 'text/csv' }));
 };
 $('btn-import').onclick = () => $('f-import').click();
