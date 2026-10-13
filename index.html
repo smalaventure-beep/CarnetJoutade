@@ -305,12 +305,12 @@ button { cursor: pointer; }
     <div class="box full">
       <div class="row between"><strong>Emplacement</strong><span class="small" id="pos-status"></span></div>
       <div id="pos-gps" class="box" style="border:0;padding:0">
-        <div class="row"><button class="ghost" id="btn-regps">Reprendre au GPS</button><button class="ghost" id="btn-replace">Placer sur la carte</button><button class="ghost" id="btn-goto">M'y guider</button></div>
+        <div class="row"><button class="ghost" id="btn-regps">Reprendre au GPS</button><button class="ghost" id="btn-replace">Placer sur la carte</button><button class="ghost" id="btn-move" hidden>Déplacer…</button><button class="ghost" id="btn-goto">M'y guider</button></div>
         <label>Latitude, longitude<input class="field mono" id="f-gps" placeholder="46.60000, 2.40000" inputmode="decimal"></label>
       </div>
       <div id="pos-zone" class="box" style="border:0;padding:0" hidden>
         <div class="small" id="pos-zone-txt"></div>
-        <div class="row" id="pos-zone-btns"><button class="ghost" id="btn-zmove">Déplacer dans le plan</button><button class="ghost" id="btn-zview">Voir le plan</button></div>
+        <div class="row" id="pos-zone-btns"><button class="ghost" id="btn-zmove">Déplacer dans le plan</button><button class="ghost" id="btn-move2">Déplacer ailleurs…</button><button class="ghost" id="btn-zview">Voir le plan</button></div>
         <div class="row" id="pos-serre-btns"><button class="ghost" id="btn-repiq">Repiquer vers…</button></div>
       </div>
     </div>
@@ -502,6 +502,16 @@ button { cursor: pointer; }
     </div>
   </div>
   <div class="actions"><button class="primary" id="tr-ok">Enregistrer</button><button class="ghost" id="tr-later">Plus tard</button></div>
+</div>
+
+<div class="sheet" id="sheet-move" hidden role="dialog" aria-labelledby="mv-title">
+  <div class="grab"></div>
+  <h2 id="mv-title">Déplacer</h2>
+  <div class="form">
+    <label class="full">Nouvel emplacement<select class="field" id="mv-dest"></select></label>
+    <div class="full small">Le déplacement est noté dans la fiche, avec la date et l’ancien emplacement.</div>
+  </div>
+  <div class="actions"><button class="primary" id="mv-ok">Continuer</button><button class="ghost" id="mv-cancel">Annuler</button></div>
 </div>
 
 <datalist id="dl-plantes"></datalist>
@@ -761,7 +771,7 @@ $('f-close').onclick = () => { finderId = null; $('finder').hidden = true; };
 let toastT;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
 function openSheet(id) { closeSheets(true); $('backdrop').hidden = false; $(id).hidden = false; $(id).scrollTop = 0; }
-function closeSheets(keepBackdrop) { ['sheet-plant', 'sheet-list', 'sheet-menu', 'sheet-capture', 'sheet-zone', 'sheet-row', 'sheet-repiq', 'sheet-pick', 'sheet-ics', 'sheet-terrain'].forEach(i => $(i).hidden = true); if (!keepBackdrop) $('backdrop').hidden = true; }
+function closeSheets(keepBackdrop) { ['sheet-plant', 'sheet-list', 'sheet-menu', 'sheet-capture', 'sheet-zone', 'sheet-row', 'sheet-repiq', 'sheet-pick', 'sheet-ics', 'sheet-terrain', 'sheet-move'].forEach(i => $(i).hidden = true); if (!keepBackdrop) $('backdrop').hidden = true; }
 $('backdrop').onclick = () => { if (!$('sheet-capture').hidden) return; closeSheets(); draft = null; zdraft = null; draftLayer.clearLayers(); renderMarkers(); };
 const fmtLL = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 function parseLatLng(s) {
@@ -810,6 +820,7 @@ async function updateBits() {
   $('f-gps').value = p.lat != null ? fmtLL(p.lat, p.lng) : '';
   $('pos-status').textContent = p.lat == null ? 'pas encore placée' : p.acc ? `GPS ± ${p.acc < 10 ? p.acc.toFixed(1) : Math.round(p.acc)} m` : 'placée à la main';
   $('btn-goto').hidden = p.lat == null || !p.id;
+  $('btn-move').hidden = !p.id; $('btn-regps').hidden = !!p.id && p.lat != null; $('btn-replace').hidden = !!p.id && p.lat != null;
   const u = await photoUrl(p.photoId); $('photo-prev').hidden = !u; if (u) $('photo-prev').src = u;
   $('btn-photo-rm').hidden = !p.photoId;
 }
@@ -1427,9 +1438,49 @@ async function finishRepiquage() {
   if (src && !src.dateFin) { src.dateFin = today(); src.notes = ((src.notes || '') + `\nRepiqué le ${fmtDate(today())} dans ${pvZone.nom}.`).trim(); await idb.put(src); }
   pvTemplate.finish = false;
 }
+
+/* ===== Déplacer une plante ===== */
+function openMove() {
+  readForm();
+  const zp = draft.zoneId && zones.find(z => z.id === draft.zoneId);
+  const opts = [['gps', 'En pleine terre : je suis au nouvel endroit (GPS)'], ['map', 'En pleine terre : je le place sur la carte']];
+  for (const z of zones) if (CULTIVABLE.includes(z.type) || z.type === 'serre') opts.push(['zone:' + z.id, (z.type === 'serre' ? 'Dans la serre : ' : 'Dans : ') + z.nom + (zp && zp.id === z.id ? ' (ailleurs dans la même zone)' : '')]);
+  $('mv-dest').innerHTML = opts.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join('');
+  $('mv-title').textContent = `Déplacer « ${draft.nom || 'la plante'} »`;
+  openSheet('sheet-move');
+}
+$('btn-move').onclick = openMove;
+$('btn-move2').onclick = openMove;
+$('mv-cancel').onclick = () => openSheet('sheet-plant');
+$('mv-ok').onclick = () => {
+  const v = $('mv-dest').value;
+  const leaveZone = () => { delete draft.zoneId; delete draft.zx; delete draft.zy; };
+  if (v === 'gps') { leaveZone(); draft._reopen = true; startCapture(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: r.acc }); delete draft._reopen; fillPlantSheetKeep(); openSheet('sheet-plant'); }); }
+  else if (v === 'map') { const start = draft.lat != null ? [draft.lat, draft.lng] : null; leaveZone(); closePlanView(); startPlace(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: null }); fillPlantSheetKeep(); openSheet('sheet-plant'); }, start); }
+  else {
+    const z = zones.find(x => x.id === v.slice(5)); if (!z) return;
+    draft.zoneId = z.id; delete draft.lat; delete draft.lng; delete draft.acc;
+    if (z.type === 'serre') { delete draft.zx; delete draft.zy; fillPlantSheetKeep(); openSheet('sheet-plant'); return; }
+    const d = draft; openPlanView(z); draft = d;
+    setPvMode('move', `Touchez le nouvel emplacement de « ${draft.nom || 'la plante'} »`); renderPlan();
+  }
+};
+function placeDesc(p) {
+  if (p.zoneId) { const z = zones.find(x => x.id === p.zoneId); return z ? z.nom : 'une zone supprimée'; }
+  return p.lat != null ? `pleine terre, ${fmtLL(p.lat, p.lng)}` : 'pas d’emplacement';
+}
 const _savePlantOrig = savePlant;
 savePlant = async function () {
   const wasZone = draft && draft.zoneId && pvZone;
+  const orig = draft && draft.id && plants.find(p => p.id === draft.id);
+  if (orig) {
+    readForm();
+    const moved = (orig.zoneId || '') !== (draft.zoneId || '') || (draft.zoneId ? (orig.zx != null && draft.zx != null && Math.hypot(orig.zx - draft.zx, orig.zy - draft.zy) > 0.3) : (orig.lat != null && draft.lat != null && distBear(orig, draft).d > 1.5));
+    if (moved && (orig.lat != null || orig.zoneId)) {
+      const line = `Déplacée le ${fmtDate(today())} (avant : ${placeDesc(orig)}).`;
+      $('f-notes').value = ($('f-notes').value.trim() + '\n' + line).trim();
+    }
+  }
   await _savePlantOrig();
   if (wasZone) { await finishRepiquage(); renderPlan(); }
 };
