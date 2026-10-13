@@ -1,6 +1,6 @@
 {
-  "name": "Carnet de La Joutade",
-  "short_name": "Joutade",
+  "name": "Carnet de jardin",
+  "short_name": "Carnet",
   "description": "Catalogue géolocalisé des arbres fruitiers, petits fruits et vivaces plantés au jardin.",
   "lang": "fr",
   "start_url": "./",

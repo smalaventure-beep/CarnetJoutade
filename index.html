@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Carnet de La Joutade</title>
+<title>Carnet de jardin</title>
 <meta name="theme-color" content="#2d5631">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -206,7 +206,7 @@ button { cursor: pointer; }
 <div id="map"></div>
 
 <div class="topbar">
-  <div class="title"><h1>Carnet de La Joutade</h1><div class="stats" id="stats">…</div></div>
+  <div class="title"><h1 id="app-title">Carnet de jardin</h1><div class="stats" id="stats">…</div></div>
   <button class="round" id="btn-menu" aria-label="Réglages et sauvegarde"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </div>
 <div class="side">
@@ -297,7 +297,7 @@ button { cursor: pointer; }
       <div class="row between"><strong>Emplacement</strong><span class="small" id="pos-status"></span></div>
       <div id="pos-gps" class="box" style="border:0;padding:0">
         <div class="row"><button class="ghost" id="btn-regps">Reprendre au GPS</button><button class="ghost" id="btn-replace">Placer sur la carte</button><button class="ghost" id="btn-goto">M'y guider</button></div>
-        <label>Latitude, longitude<input class="field mono" id="f-gps" placeholder="45.32700, 1.07470" inputmode="decimal"></label>
+        <label>Latitude, longitude<input class="field mono" id="f-gps" placeholder="46.60000, 2.40000" inputmode="decimal"></label>
       </div>
       <div id="pos-zone" class="box" style="border:0;padding:0" hidden>
         <div class="small" id="pos-zone-txt"></div>
@@ -342,6 +342,11 @@ button { cursor: pointer; }
       <div class="row"><button class="ghost" id="btn-export">Exporter la sauvegarde</button><button class="ghost" id="btn-csv">Exporter en tableur</button></div>
       <div class="row"><input id="f-import" type="file" accept=".json,application/json" hidden><button class="ghost" id="btn-import">Importer une sauvegarde</button></div>
       <div class="small" id="backup-status"></div>
+    </div>
+    <div class="box full">
+      <strong>Mon terrain</strong>
+      <div class="small" id="terrain-status"></div>
+      <div class="row"><button class="ghost" id="btn-terrain">Nom et emplacement du terrain</button></div>
     </div>
     <div class="box full">
       <strong>Hors ligne</strong>
@@ -467,10 +472,24 @@ button { cursor: pointer; }
     <div class="full small" id="ics-info"></div>
     <div class="full box">
       <strong>Pour l’importer (une fois par an, ou après beaucoup d’ajouts)</strong>
-      <div class="small">1. Sur calendar.google.com (sur téléphone : menu ⋮ de Chrome, « Version ordinateur »), créez un agenda « Jardin La Joutade » : Paramètres › Ajouter un agenda › Créer un agenda.<br>2. Paramètres › Importer et exporter › Importer : choisissez le fichier, puis l’agenda « Jardin La Joutade ».<br>3. Dans les paramètres de cet agenda, réglez « Notifications des événements » sur « 0 minute avant », pour être prévenue à 8 h.<br>Pour mettre à jour : supprimez l’agenda « Jardin La Joutade », recréez-le, puis réimportez.</div>
+      <div class="small">1. Sur calendar.google.com (sur téléphone : menu ⋮ de Chrome, « Version ordinateur »), créez un agenda « <span class="calname">Jardin</span> » : Paramètres › Ajouter un agenda › Créer un agenda.<br>2. Paramètres › Importer et exporter › Importer : choisissez le fichier, puis l’agenda « <span class="calname">Jardin</span> ».<br>3. Dans les paramètres de cet agenda, réglez « Notifications des événements » sur « 0 minute avant », pour être prévenue à 8 h.<br>Pour mettre à jour : supprimez l’agenda « <span class="calname">Jardin</span> », recréez-le, puis réimportez.</div>
     </div>
   </div>
   <div class="actions"><button class="primary" id="ics-go">Créer le fichier</button><button class="ghost" id="ics-close">Fermer</button></div>
+</div>
+
+<div class="sheet" id="sheet-terrain" hidden role="dialog" aria-labelledby="tr-title">
+  <div class="grab"></div>
+  <h2 id="tr-title">Votre terrain</h2>
+  <div class="form">
+    <div class="full small">Le nom s’affiche en haut de l’appli et dans l’agenda. L’emplacement sert au bouton maison et à la carte hors ligne. Les deux restent dans ce téléphone.</div>
+    <label class="full">Nom du carnet<input class="field" id="tr-nom" placeholder="Carnet des Lilas, Le jardin de Paul…"></label>
+    <div class="box full">
+      <div class="row between"><strong>Emplacement</strong><span class="small" id="tr-pos"></span></div>
+      <div class="row"><button class="ghost" id="tr-gps">Je suis sur mon terrain (GPS)</button><button class="ghost" id="tr-map">Placer sur la carte</button><button class="ghost" id="tr-plants" hidden>Centrer sur mes plantes</button></div>
+    </div>
+  </div>
+  <div class="actions"><button class="primary" id="tr-ok">Enregistrer</button><button class="ghost" id="tr-later">Plus tard</button></div>
 </div>
 
 <datalist id="dl-plantes"></datalist>
@@ -480,7 +499,7 @@ button { cursor: pointer; }
 <script src="leaflet.js"></script>
 <script>
 /* ===== Constants ===== */
-const HOME = { lat: 45.32707, lng: 1.07469, z: 19 };
+let HOME = { lat: 46.6, lng: 2.4, z: 6 };   // France entière tant que le terrain n'est pas réglé
 const CATS = [
   { id: 'arbre', label: 'Arbre fruitier', color: '#c0532f' },
   { id: 'inconnu', label: 'Arbre inconnu', color: '#d9b8f2' },
@@ -730,7 +749,7 @@ $('f-close').onclick = () => { finderId = null; $('finder').hidden = true; };
 let toastT;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
 function openSheet(id) { closeSheets(true); $('backdrop').hidden = false; $(id).hidden = false; $(id).scrollTop = 0; }
-function closeSheets(keepBackdrop) { ['sheet-plant', 'sheet-list', 'sheet-menu', 'sheet-capture', 'sheet-zone', 'sheet-row', 'sheet-repiq', 'sheet-pick', 'sheet-ics'].forEach(i => $(i).hidden = true); if (!keepBackdrop) $('backdrop').hidden = true; }
+function closeSheets(keepBackdrop) { ['sheet-plant', 'sheet-list', 'sheet-menu', 'sheet-capture', 'sheet-zone', 'sheet-row', 'sheet-repiq', 'sheet-pick', 'sheet-ics', 'sheet-terrain'].forEach(i => $(i).hidden = true); if (!keepBackdrop) $('backdrop').hidden = true; }
 $('backdrop').onclick = () => { if (!$('sheet-capture').hidden) return; closeSheets(); draft = null; zdraft = null; draftLayer.clearLayers(); renderMarkers(); };
 const fmtLL = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 function parseLatLng(s) {
@@ -910,7 +929,7 @@ $('btn-export').onclick = async () => {
   const photos = {};
   for (const p of plants) if (p.photoId) { const b = await idb.getPhoto(p.photoId); if (b) photos[p.photoId] = await blobToB64(b); }
   const data = JSON.stringify({ app: 'carnet-joutade', version: 1, exporte: new Date().toISOString(), plantes: plants, zones, meta, photos });
-  const ok = await downloadFile(`carnet-joutade-${new Date().toISOString().slice(0, 10)}.json`, new Blob([data], { type: 'application/json' }));
+  const ok = await downloadFile(`${fileSlug(carnetName())}-${new Date().toISOString().slice(0, 10)}.json`, new Blob([data], { type: 'application/json' }));
   if (ok) { try { localStorage.setItem('lastBackup', new Date().toISOString()); } catch (e) {} }
   $('backup-status').textContent = ok ? lastBackupText() : 'Export annulé.';
 };
@@ -918,7 +937,7 @@ $('btn-csv').onclick = () => {
   const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['origine', 'Origine'], ['date', 'Planté / repéré le'], ['provenance', 'Provenance'], ['etat', 'État'], ['famille', 'Famille'], ['zone', 'Emplacement'], ['dateFin', 'Terminé le'], ['qte', 'Quantité'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
   const cell = v => { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : k === 'origine' ? (p.origine === 'spontanee' ? 'Pousse spontanée' : 'Plantée') : k === 'famille' ? (famOf(p.famille) || {}).label : k === 'zone' ? ((zones.find(z => z.id === p.zoneId) || {}).nom || '') + (p.zx != null ? ` (${p.zx.toFixed(2)} m ; ${p.zy.toFixed(2)} m)` : '') : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
-  downloadFile('carnet-joutade.csv', new Blob(['﻿' + [cols.map(c => c[1]).join(';'), ...rows].join('\n')], { type: 'text/csv' }));
+  downloadFile(fileSlug(carnetName()) + '.csv', new Blob(['﻿' + [cols.map(c => c[1]).join(';'), ...rows].join('\n')], { type: 'text/csv' }));
 };
 $('btn-import').onclick = () => $('f-import').click();
 $('f-import').onchange = async e => {
@@ -1680,7 +1699,7 @@ function buildIcs() {
   const now = new Date(), d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   d.setDate(d.getDate() + ((8 - d.getDay()) % 7));      // prochain lundi (ou aujourd'hui si lundi)
   const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
-  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Carnet de La Joutade//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Jardin La Joutade', 'X-WR-TIMEZONE:Europe/Paris'];
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Carnet de jardin//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', icsFold('X-WR-CALNAME:' + icsText(calName())), 'X-WR-TIMEZONE:Europe/Paris'];
   let count = 0;
   const asap = asapItems(), prot = protectedPlants();
   for (let w = 0; w < 53; w++) {
@@ -1693,7 +1712,7 @@ function buildIcs() {
     if (lines.length) {
       const ds = `${y}${pad2(m)}${pad2(d.getDate())}`, n = lines.length;
       const sum = `Jardin · ${n} chose${n > 1 ? 's' : ''} à faire (${MOIS[m - 1]})`;
-      L.push('BEGIN:VEVENT', `UID:jardin-${ds}@carnet-joutade`, `DTSTAMP:${stamp}`, `DTSTART:${ds}T080000`, `DTEND:${ds}T081500`, icsFold('SUMMARY:' + icsText(sum)), icsFold('DESCRIPTION:' + icsText(`Ce mois-ci au jardin (tâches pas encore cochées le ${fmtDate(today())}) :\n` + lines.join('\n'))), 'TRANSP:TRANSPARENT', 'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Jardin', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
+      L.push('BEGIN:VEVENT', `UID:jardin-${ds}@carnet-jardin`, `DTSTAMP:${stamp}`, `DTSTART:${ds}T080000`, `DTEND:${ds}T081500`, icsFold('SUMMARY:' + icsText(sum)), icsFold('DESCRIPTION:' + icsText(`Ce mois-ci au jardin (tâches pas encore cochées le ${fmtDate(today())}) :\n` + lines.join('\n'))), 'TRANSP:TRANSPARENT', 'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Jardin', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
       count++;
     }
     d.setDate(d.getDate() + 7);
@@ -1703,7 +1722,48 @@ function buildIcs() {
 }
 $('cal-ics').onclick = () => { const { count } = buildIcs(); $('ics-info').textContent = count ? `${count} lundis avec des choses à faire sur les 12 prochains mois.` : 'Aucune tâche pour l’instant : ajoutez des plantes d’abord.'; openSheet('sheet-ics'); };
 $('ics-close').onclick = () => closeSheets();
-$('ics-go').onclick = async () => { const { text } = buildIcs(); const ok = await downloadFile('jardin-la-joutade.ics', new Blob([text], { type: 'text/calendar' })); if (ok) toast('Fichier créé : importez-le dans Google Agenda'); };
+$('ics-go').onclick = async () => { const { text } = buildIcs(); const ok = await downloadFile(fileSlug(calName()) + '.ics', new Blob([text], { type: 'text/calendar' })); if (ok) toast('Fichier créé : importez-le dans Google Agenda'); };
+
+/* ===== Mon terrain ===== */
+const carnetName = () => (meta.terrain && meta.terrain.nom) || 'Carnet de jardin';
+const calName = () => 'Jardin · ' + carnetName().replace(/^carnet (de |du |des |d’|d')/i, '');
+const fileSlug = t => norm(t).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'carnet';
+function applyTerrain(moveMap) {
+  const t = meta.terrain;
+  if (t && t.lat != null) HOME = { lat: t.lat, lng: t.lng, z: 19 };
+  $('app-title').textContent = carnetName(); document.title = carnetName();
+  document.querySelectorAll('.calname').forEach(e => e.textContent = calName());
+  if (moveMap && t && t.lat != null) map.setView([HOME.lat, HOME.lng], HOME.z);
+  $('terrain-status').textContent = t && t.lat != null ? `${carnetName()} · ${fmtLL(t.lat, t.lng)}` : 'Pas encore réglé.';
+}
+let trDraft = null;
+function openTerrain() {
+  trDraft = { ...(meta.terrain || {}) };
+  $('tr-nom').value = trDraft.nom || '';
+  $('tr-plants').hidden = !plants.some(p => p.lat != null);
+  updTerrainPos(); openSheet('sheet-terrain');
+}
+function updTerrainPos() { $('tr-pos').textContent = trDraft.lat != null ? 'réglé ✓' : 'pas encore réglé'; }
+$('btn-terrain').onclick = openTerrain;
+$('tr-gps').onclick = () => { trDraft.nom = $('tr-nom').value.trim(); startCapture(r => { trDraft.lat = r.lat; trDraft.lng = r.lng; map.setView([r.lat, r.lng], 19); openTerrainKeep(); }); capture.onCancel = () => openTerrainKeep(); };
+$('tr-map').onclick = () => { trDraft.nom = $('tr-nom').value.trim(); startPlace(r => { trDraft.lat = r.lat; trDraft.lng = r.lng; openTerrainKeep(); }, trDraft.lat != null ? [trDraft.lat, trDraft.lng] : null); if (trDraft.lat == null) map.setView(map.getCenter(), Math.max(map.getZoom(), 6)); };
+$('tr-plants').onclick = () => {
+  const pts = plants.filter(p => p.lat != null); if (!pts.length) return;
+  trDraft.lat = pts.reduce((a, p) => a + p.lat, 0) / pts.length; trDraft.lng = pts.reduce((a, p) => a + p.lng, 0) / pts.length;
+  map.setView([trDraft.lat, trDraft.lng], 19); updTerrainPos();
+};
+function openTerrainKeep() { const d = trDraft; openSheet('sheet-terrain'); trDraft = d; $('tr-nom').value = d.nom || ''; $('tr-plants').hidden = !plants.some(p => p.lat != null); updTerrainPos(); }
+$('tr-ok').onclick = async () => {
+  trDraft.nom = $('tr-nom').value.trim();
+  if (!trDraft.nom) { $('tr-nom').focus(); toast('Donnez un nom à votre carnet.'); return; }
+  meta.terrain = { nom: trDraft.nom, lat: trDraft.lat ?? null, lng: trDraft.lng ?? null };
+  await idb.setMeta('terrain', meta.terrain);
+  const moved = trDraft.lat != null; trDraft = null; closeSheets(); applyTerrain(moved); toast('Terrain enregistré');
+};
+$('tr-later').onclick = () => { closeSheets(); trDraft = null; };
+// place-cancel when choosing the terrain: back to the terrain sheet
+const _placeCancel = $('place-cancel').onclick;
+$('place-cancel').onclick = () => { if (!$('sheet-terrain').hidden || (trDraft && !draft)) { endPlace(); openTerrainKeep(); return; } _placeCancel(); };
 
 /* ===== Boot ===== */
 CATS.forEach(c => $('f-cat').insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.label}</option>`));
@@ -1711,7 +1771,9 @@ ETATS.forEach(e => $('f-etat').insertAdjacentHTML('beforeend', `<option value="$
 function renderAll() { updCalBadge(); refreshDatalist(); renderStats(); renderZones(); renderMarkers(); if (pvZone) renderPlan(); if (!$('sheet-list').hidden) { renderChips(); renderList(); } }
 (async () => {
   try { plants = await idb.all(); zones = await idb.zones(); meta = await idb.metaAll(); } catch (e) { toast('Stockage indisponible : le carnet ne pourra pas enregistrer.'); }
+  applyTerrain(true);
   renderAll();
+  if (!meta.terrain) openTerrain();
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   startWatch();
 })();
