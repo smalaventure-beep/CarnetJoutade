@@ -206,6 +206,28 @@ button { cursor: pointer; }
 .tasklist .row { justify-content: space-between; flex-wrap: nowrap; font-size: .88rem; }
 .tasklist .m { font: 500 .78rem var(--f-mono); color: var(--muted); }
 .tasklist .x { border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; padding: 2px 6px; }
+.invtabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 4px; scrollbar-width: none; }
+.invtabs button { flex: none; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 7px 12px; font-weight: 700; font-size: .85rem; white-space: nowrap; }
+.invtabs button span { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.invtabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.invtabs button[aria-selected="true"] span { color: inherit; opacity: .8; }
+.inv-group { border-bottom: 1px solid var(--line); }
+.inv-group summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 11px 2px; cursor: pointer; }
+.inv-group summary::-webkit-details-marker { display: none; }
+.inv-group summary i { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.inv-group .t { flex: 1; min-width: 0; }
+.inv-group .t b { display: block; font-size: 1rem; }
+.inv-group .t span { font-size: .8rem; color: var(--muted); }
+.inv-group .cnt { font: 500 1.1rem var(--f-mono); font-variant-numeric: tabular-nums; }
+.inv-items { padding: 0 0 10px 22px; display: flex; flex-direction: column; gap: 2px; }
+.inv-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); }
+.inv-item .t { flex: 1; min-width: 0; }
+.inv-item .t b { font-size: .92rem; }
+.inv-item .t span { display: block; font-size: .78rem; color: var(--muted); }
+.answer { font: 400 1.35rem/1.25 var(--f-display); margin: 6px 0 10px; }
+.answer b { font-weight: 400; color: var(--accent); }
+.filterbar { position: fixed; z-index: 600; left: 12px; right: 70px; top: calc(env(safe-area-inset-top,0px) + 70px); background: var(--ink); color: var(--bg); border-radius: 12px; padding: 8px 10px 8px 12px; display: flex; gap: 10px; align-items: center; justify-content: space-between; box-shadow: var(--shadow); font-size: .88rem; }
+.filterbar button { background: transparent; color: var(--bg); border: 1px solid currentColor; border-radius: 9px; padding: 5px 9px; flex: none; }
 .toast { position: fixed; z-index: 1000; left: 50%; top: calc(env(safe-area-inset-top,0px) + 70px); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: .88rem; max-width: calc(100% - 32px); }
 @media (prefers-reduced-motion: no-preference) { .sheet { animation: up .22s ease-out; } @keyframes up { from { transform: translateY(30px); opacity: .6 } } }
 </style>
@@ -215,6 +237,7 @@ button { cursor: pointer; }
 
 <div class="topbar">
   <div class="title"><h1 id="app-title">Carnet de jardin</h1><div class="stats" id="stats">…</div></div>
+  <button class="round" id="btn-search" aria-label="Chercher une plante"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
   <button class="round" id="btn-menu" aria-label="Réglages et sauvegarde"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 </div>
 <div class="side">
@@ -265,7 +288,7 @@ button { cursor: pointer; }
     <label>Catégorie<select class="field" id="f-cat"></select></label>
     <label>Variété / cultivar<input class="field" id="f-var" placeholder="Reinette du Mans"></label>
     <label id="lbl-pg">Porte-greffe<input class="field" id="f-pg" placeholder="MM106, franc…"></label>
-    <label>Origine<select class="field" id="f-origine"><option value="plantee">Plantée</option><option value="spontanee">Pousse spontanée</option></select></label>
+    <label>Origine<select class="field" id="f-origine"><option value="plantee">Plantée</option><option value="spontanee">Pousse spontanée</option><option value="anciens">Plantée par les anciens propriétaires</option></select></label>
     <label id="lbl-date"><span id="date-lbl">Planté le</span><input class="field" id="f-date" type="date"></label>
     <label>Provenance<input class="field" id="f-prov" placeholder="Pépinière, bouture, don…"></label>
     <label>État<select class="field" id="f-etat"></select></label>
@@ -330,13 +353,14 @@ button { cursor: pointer; }
 <!-- Catalogue sheet -->
 <div class="sheet" id="sheet-list" hidden role="dialog" aria-labelledby="sl-title">
   <div class="grab"></div>
-  <h2 id="sl-title">Catalogue</h2>
+  <h2 id="sl-title">Inventaire</h2>
+  <div class="invtabs" id="inv-tabs" role="tablist"></div>
   <div class="filters">
-    <input class="field" id="q" type="search" placeholder="Chercher : pommier, Ribes…">
-    <label class="small" style="display:flex;align-items:center;gap:6px;flex:0 0 auto"><input type="checkbox" id="show-fin"> Cultures terminées</label>
-    <select class="field" id="sort"><option value="nom">A → Z</option><option value="dist">Les plus proches</option><option value="date">Plantées récemment</option><option value="cat">Par catégorie</option></select>
+    <input class="field" id="q" type="search" placeholder="Filtrer : chêne, Reinette, Bac 2…">
+    <select class="field" id="sort"><option value="n">Par nombre</option><option value="az">A → Z</option></select>
   </div>
-  <div class="chips" id="chips" style="margin-bottom:10px"></div>
+  <div class="row between" style="margin-bottom:8px"><span class="small" id="inv-total"></span><button class="ghost" id="inv-map">Voir seulement ça sur la carte</button></div>
+  <label class="small" style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><input type="checkbox" id="show-fin"> Inclure les cultures terminées et les plantes mortes</label>
   <div class="list" id="list"></div>
   <div class="actions"><button class="ghost" id="btn-list-close">Fermer</button></div>
 </div>
@@ -392,7 +416,7 @@ button { cursor: pointer; }
       <label>Type de forme<select class="field" id="z-shape"><option value="rect">Rectangle (dimensions connues)</option><option value="cercle">Rond (diamètre connu)</option><option value="free">Forme libre (par les coins)</option></select></label>
       <div class="row" id="z-dims"><label style="flex:1">Longueur (m)<input class="field mono" id="z-L" inputmode="decimal" placeholder="4"></label><label style="flex:1">Largeur (m)<input class="field mono" id="z-W" inputmode="decimal" placeholder="1"></label></div>
       <div class="row" id="z-dimc" hidden><label style="flex:1">Diamètre (m)<input class="field mono" id="z-D" inputmode="decimal" placeholder="1.5"></label></div>
-      <div class="row"><button class="ghost" id="z-place">Placer sur la carte</button></div>
+      <div class="row"><button class="ghost" id="z-place">Placer sur la carte</button><button class="ghost" id="z-move" hidden>Déplacer sans changer la forme</button></div>
     </div>
     <label class="full">Notes<textarea class="field" id="z-notes" rows="3" placeholder="Matériaux, contenu du bac, dates…"></textarea></label>
   </div>
@@ -415,6 +439,7 @@ button { cursor: pointer; }
     <button class="ghost" id="pv-edit">Modifier</button>
   </div>
   <div class="pv-tools">
+    <button class="ghost" id="pv-move">Déplacer sur la carte</button>
     <div class="seg" aria-label="Saison"><button id="pv-yprev" aria-label="Année précédente">‹</button><span id="pv-yval"></span><button id="pv-ynext" aria-label="Année suivante">›</button></div>
     <button class="ghost" id="pv-ghost" aria-pressed="false">Voir l’an passé</button>
     <div class="seg" id="pv-zoomseg"><button id="pv-zout" aria-label="Dézoomer">−</button><button id="pv-zin" aria-label="Zoomer">+</button></div>
@@ -514,6 +539,15 @@ button { cursor: pointer; }
   <div class="actions"><button class="primary" id="mv-ok">Continuer</button><button class="ghost" id="mv-cancel">Annuler</button></div>
 </div>
 
+<div class="planview serre" id="searchview" hidden>
+  <div class="pv-head">
+    <button class="round" id="s-back" aria-label="Retour à la carte"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <input class="field" id="sq" type="search" autocomplete="off" placeholder="Figuier, chêne, Reinette, Bac 2…" style="flex:1;font-size:1.05rem">
+  </div>
+  <div class="pv-list" id="s-res"></div>
+</div>
+<div class="filterbar" id="filterbar" hidden><span id="fb-text"></span><button id="fb-all">Tout afficher</button></div>
+
 <datalist id="dl-plantes"></datalist>
 
 <div class="toast" id="toast" hidden></div>
@@ -531,6 +565,7 @@ const CATS = [
   { id: 'legume', label: 'Légume perpétuel', color: '#c79a1e' },
   { id: 'arom', label: 'Aromatique', color: '#2a8a80' },
   { id: 'foret', label: 'Arbre forestier', color: '#5a4a32' },
+  { id: 'fleur', label: 'Fleurs et mellifères', color: '#d6559b' },
   { id: 'haie', label: 'Arbuste / haie', color: '#97762a' },
   { id: 'grimp', label: 'Grimpante', color: '#4b5fa8' },
   { id: 'couvre', label: 'Couvre-sol', color: '#6f8f22' },
@@ -643,6 +678,7 @@ function renderMarkers() {
   plantLayer.clearLayers();
   for (const p of plants) {
     if (p.lat == null || p.zoneId || hiddenCats.has(p.cat)) continue;
+    if (mapOnly && !mapOnly.has(p.id)) continue;
     const c = catOf(p.cat);
     const icon = L.divIcon({ className: '', iconSize: [20, 20], iconAnchor: [10, 10], html: `<div class="pm${p.etat === 'mort' ? ' dead' : ''}${needsAttention(p) ? ' alert' : ''}${draft && draft.id === p.id ? ' sel' : ''}" style="background:${c.color}"></div>` });
     const m = L.marker([p.lat, p.lng], { icon, keyboard: true, title: p.nom }).addTo(plantLayer);
@@ -786,7 +822,7 @@ function since(d) {
   const y = Math.floor(days / 365.25); return `depuis ${y} an${y > 1 ? 's' : ''}`;
 }
 function renderStats() {
-  const act = plants.filter(p => !isFinished(p)), n = act.length, sp = new Set(act.map(p => (p.latin || p.nom || '').trim().toLowerCase()).filter(Boolean)).size;
+  const act = plants.filter(p => !isGone(p)), n = act.length, sp = new Set(act.map(p => speciesOf(p).key)).size;
   $('stats').textContent = n ? `${n} plante${n > 1 ? 's' : ''} · ${sp} espèce${sp > 1 ? 's' : ''}` : 'Carnet vide : allez au pied d’une plante';
 }
 
@@ -860,8 +896,8 @@ $('btn-del-yes').onclick = async () => {
   await idb.del(draft.id); if (draft.photoId) await idb.delPhoto(draft.photoId);
   plants = plants.filter(p => p.id !== draft.id); draft = null; closeSheets(); renderAll(); toast('Fiche supprimée');
 };
-function syncOrigine() { $('date-lbl').textContent = $('f-origine').value === 'spontanee' ? 'Repérée le (facultatif)' : 'Planté le'; }
-$('f-origine').onchange = () => { if ($('f-origine').value === 'spontanee' && draft && !draft.id) $('f-date').value = ''; syncOrigine(); };
+function syncOrigine() { const o = $('f-origine').value; $('date-lbl').textContent = o === 'spontanee' ? 'Repérée le (facultatif)' : o === 'anciens' ? 'Planté vers (facultatif)' : 'Planté le'; }
+$('f-origine').onchange = () => { if ($('f-origine').value !== 'plantee' && draft && !draft.id) $('f-date').value = ''; syncOrigine(); };
 $('f-cat').onchange = () => { $('lbl-pg').hidden = $('f-cat').value !== 'arbre'; $('lbl-fam').hidden = !(draft && draft.zoneId || ['annuel', 'legume', 'vivace', 'arom'].includes($('f-cat').value)); };
 $('btn-regps').onclick = () => { readForm(); draft._reopen = true; startCapture(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: r.acc }); delete draft._reopen; updateBits(); openSheet('sheet-plant'); }); };
 $('btn-replace').onclick = () => { readForm(); startPlace(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: null }); updateBits(); openSheet('sheet-plant'); }, draft.lat != null ? [draft.lat, draft.lng] : null); };
@@ -897,40 +933,155 @@ map.on('contextmenu', e => { // long press on the map: add a plant there by hand
   fillPlantSheet(); openSheet('sheet-plant');
 });
 
-/* ===== Catalogue ===== */
-function renderChips() {
-  const used = new Set(plants.map(p => p.cat));
-  $('chips').innerHTML = CATS.filter(c => used.has(c.id)).map(c => `<button class="chip" data-cat="${c.id}" aria-pressed="${!hiddenCats.has(c.id)}"><i style="background:${c.color}"></i>${esc(c.label)} <span class="small">${plants.filter(p => p.cat === c.id).length}</span></button>`).join('');
+/* ===== Inventaire, recherche et filtre carte ===== */
+const TABS = [
+  ['all', 'Tout', null], ['fruit', 'Fruitiers', ['arbre', 'inconnu']], ['petit', 'Petits fruits', ['petit']], ['sauvage', 'Sauvages', ['foret', 'haie']],
+  ['vivace', 'Vivaces', ['vivace', 'couvre', 'grimp']], ['arom', 'Aromatiques', ['arom']], ['legume', 'Légumes', ['legume', 'annuel']], ['fleur', 'Fleurs', ['fleur']],
+  ['autre', 'Autre', ['autre']], ['amenag', 'Aménagements', 'zones'],
+];
+let invTab = 'all', mapOnly = null;
+const cap1 = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+function speciesOf(p) {
+  const kb = kbFor(p);
+  if (kb) return { key: 'kb:' + kb.l, label: kb.l };
+  const g = (p.latin || '').trim().split(/\s+/)[0];
+  const w = (p.nom || '?').trim().split(/\s+/)[0];
+  if (g && /^[A-Z]/.test(g)) return { key: 'g:' + norm(g), label: cap1(w) };
+  return { key: 'n:' + norm(w), label: cap1(w) };
 }
-$('chips').onclick = e => { const b = e.target.closest('.chip'); if (!b) return; const c = b.dataset.cat; hiddenCats.has(c) ? hiddenCats.delete(c) : hiddenCats.add(c); renderChips(); renderList(); renderMarkers(); };
-async function renderList() {
-  const q = $('q').value.trim().toLowerCase(), sort = $('sort').value;
-  const showFin = $('show-fin').checked;
-  let rows = plants.filter(p => (showFin || !isFinished(p)) && !hiddenCats.has(p.cat) && (!q || [p.nom, p.latin, p.variete, p.notes, p.provenance, catOf(p.cat).label].join(' ').toLowerCase().includes(q)));
-  const dist = p => me && p.lat != null ? distBear(me, p).d : Infinity;
-  const by = { nom: (a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'), date: (a, b) => (b.date || '').localeCompare(a.date || ''), dist: (a, b) => dist(a) - dist(b), cat: (a, b) => CATS.indexOf(catOf(a.cat)) - CATS.indexOf(catOf(b.cat)) || (a.nom || '').localeCompare(b.nom || '', 'fr') };
-  rows.sort(by[sort]);
-  if (!rows.length) { $('list').innerHTML = `<div class="nores">${plants.length ? 'Aucune plante ne correspond.' : 'Rien encore. Allez au pied d’une plante et touchez « Au pied d’une plante ».'}</div>` + zonesListHtml(q); return; }
-  const html = [], groups = new Map(), items = [];
-  for (const p of rows) {
-    if (p.zoneId) { const k = [p.zoneId, p.nom, p.variete, p.date, p.dateFin].join('|'); if (groups.has(k)) { groups.get(k).n++; continue; } const it = { p, n: 1 }; groups.set(k, it); items.push(it); }
-    else items.push({ p, n: 1 });
-  }
-  for (const { p, n } of items) {
-    const c = catOf(p.cat), e = etatOf(p.etat), u = await photoUrl(p.photoId);
-    const meta = [c.label, p.variete && `« ${esc(p.variete)} »`, p.portegreffe && `sur ${esc(p.portegreffe)}`, p.origine === 'spontanee' ? (p.date ? `pousse spontanée, repérée le ${fmtDate(p.date)}` : 'pousse spontanée') : p.date && `planté le ${fmtDate(p.date)} (${since(p.date)})`].filter(Boolean).join(' · ');
-    let where = p.lat == null && !p.zoneId ? 'pas encore placée' : '';
-    const zp = p.zoneId && zones.find(z => z.id === p.zoneId);
-    if (zp) where = (zp.type === 'serre' ? `dans la ${esc(zp.nom)}` : `dans ${esc(zp.nom)}`) + (p.qte ? ` · ${esc(p.qte)}` : '') + (p.dateFin ? ` · terminé le ${fmtDate(p.dateFin)}` : '');
-    else if (p.lat != null && me) { const { d, brg } = distBear(me, p); where = `à ${d < 10 ? d.toFixed(1) : Math.round(d)} m · ${dirName(brg)}`; }
-    html.push(`<button class="tag" data-id="${esc(p.id)}" style="--c:${c.color}"><span class="notch"></span><span class="body"><div class="name">${esc(p.nom)}${n > 1 ? ` <span class="small">×${n}</span>` : ''}</div>${p.latin ? `<div class="latin">${esc(p.latin)}</div>` : ''}<div class="meta">${meta}</div>${where ? `<div class="dist">${where}</div>` : ''}</span><span class="side2"><span class="state ${e.id}">${e.label}</span>${u ? `<img src="${u}" alt="">` : ''}</span></button>`);
-  }
-  $('list').innerHTML = html.join('') + zonesListHtml(q);
+function whereOf(p) {
+  const zp = p.zoneId && zones.find(z => z.id === p.zoneId);
+  if (zp) return (zp.type === 'serre' ? 'dans la ' : 'dans ') + zp.nom + (p.qte ? ` (${p.qte})` : '');
+  if (p.lat == null) return 'pas encore placée';
+  if (me) { const { d, brg } = distBear(me, p); return `pleine terre · à ${d < 10 ? d.toFixed(1) : Math.round(d)} m, ${dirName(brg)}`; }
+  return 'pleine terre';
 }
-$('btn-list').onclick = () => { renderChips(); renderList(); openSheet('sheet-list'); };
+const isGone = p => isFinished(p) || p.etat === 'mort';
+function hayOf(p) {
+  const kb = kbFor(p), zp = p.zoneId && zones.find(z => z.id === p.zoneId);
+  return ' ' + norm([p.nom, p.variete, p.latin, p.portegreffe, p.provenance, kb && kb.l, kb && kb.keys.join(' '), catOf(p.cat).label, zp && zp.nom].filter(Boolean).join(' ')) + ' ';
+}
+function matchQuery(p, q) {
+  const words = norm(q).split(' ').filter(Boolean); if (!words.length) return true;
+  const hay = hayOf(p);
+  return words.every(w => { const stem = w.length > 4 ? w.slice(0, Math.max(4, w.length - 1)) : w; return hay.includes(' ' + stem) || hay.includes(stem); });
+}
+function groupPlants(list) {
+  const g = new Map();
+  for (const p of list) { const sp = speciesOf(p); if (!g.has(sp.key)) g.set(sp.key, { ...sp, items: [] }); g.get(sp.key).items.push(p); }
+  return [...g.values()];
+}
+function groupSummary(gr) {
+  const vars = new Map(); let pt = 0, np = 0; const zc = new Map();
+  for (const p of gr.items) {
+    const v = p.variete || (norm(p.nom) !== norm(gr.label) ? p.nom : ''); if (v) vars.set(v, (vars.get(v) || 0) + 1);
+    if (p.zoneId) { const z = zones.find(x => x.id === p.zoneId); const n = z ? z.nom : '?'; zc.set(n, (zc.get(n) || 0) + 1); } else if (p.lat != null) pt++; else np++;
+  }
+  const parts = [];
+  if (vars.size) parts.push([...vars].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([v, n]) => n > 1 ? `${v} ×${n}` : v).join(', ') + (vars.size > 4 ? '…' : ''));
+  const loc = []; if (pt) loc.push(`${pt} en pleine terre`); for (const [n, c] of zc) loc.push(`${c} dans ${n}`); if (np) loc.push(`${np} sans emplacement`);
+  parts.push(loc.join(' · '));
+  return parts.filter(Boolean).join(' — ');
+}
+function itemHtml(p) {
+  const e = etatOf(p.etat);
+  return `<div class="inv-item"><span class="t"><b>${esc(p.nom)}${p.variete ? ' · ' + esc(p.variete) : ''}</b><span>${esc(whereOf(p))}${p.origine === 'anciens' ? ' · plantée par les anciens' + (p.date ? ' (vers ' + p.date.slice(0, 4) + ')' : '') : p.origine === 'spontanee' ? ' · spontanée' : ''}${p.dateFin ? ' · terminé' : ''}</span></span><span class="state ${e.id}">${e.label}</span><button class="mini" data-open="${esc(p.id)}">Fiche</button>${p.lat != null ? `<button class="mini" data-guide="${esc(p.id)}">Y aller</button>` : ''}</div>`;
+}
+function groupHtml(gr, open) {
+  const c = catOf(gr.items[0].cat);
+  return `<details class="inv-group" data-g="${esc(gr.key)}"${open ? ' open' : ''}><summary><i style="background:${c.color}"></i><span class="t"><b>${esc(gr.label)}</b><span>${esc(groupSummary(gr))}</span></span><span class="cnt">${gr.items.length}</span></summary><div class="inv-items">${gr.items.sort((a, b) => (a.variete || a.nom || '').localeCompare(b.variete || b.nom || '', 'fr')).map(itemHtml).join('')}${gr.items.some(p => p.lat != null) ? `<button class="ghost" data-showg="${esc(gr.key)}" style="margin-top:6px">Voir ces ${gr.items.length > 1 ? gr.items.length + ' plantes' : 'plante'} sur la carte</button>` : ''}</div></details>`;
+}
+function invPlants() {
+  const showFin = $('show-fin').checked, q = $('q').value, tab = TABS.find(t => t[0] === invTab);
+  return plants.filter(p => (showFin || !isGone(p)) && (!tab[2] || tab[2] === 'zones' || tab[2].includes(p.cat)) && matchQuery(p, q));
+}
+let invShown = [];
+function renderList() {
+  const showFin = $('show-fin').checked, base = plants.filter(p => showFin || !isGone(p));
+  $('inv-tabs').innerHTML = TABS.map(([id, label, cats]) => {
+    const n = cats === 'zones' ? zones.length : cats ? base.filter(p => cats.includes(p.cat)).length : base.length;
+    if (!n && id !== 'all' && id !== invTab) return '';
+    return `<button role="tab" data-tab="${id}" aria-selected="${id === invTab}">${label}<span>${n}</span></button>`;
+  }).join('');
+  if (invTab === 'amenag') { invShown = []; $('inv-total').textContent = `${zones.length} aménagement${zones.length > 1 ? 's' : ''}`; $('inv-map').hidden = true; $('list').innerHTML = zonesListHtml(norm($('q').value)) || '<div class="nores">Aucun aménagement.</div>'; return; }
+  const list = invPlants(); invShown = list;
+  const groups = groupPlants(list).sort($('sort').value === 'az' ? (a, b) => a.label.localeCompare(b.label, 'fr') : (a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label, 'fr'));
+  $('inv-total').textContent = list.length ? `${list.length} plante${list.length > 1 ? 's' : ''} · ${groups.length} espèce${groups.length > 1 ? 's' : ''}` : '';
+  $('inv-map').hidden = !list.some(p => p.lat != null);
+  $('list').innerHTML = list.length ? groups.map(g => groupHtml(g, groups.length === 1)).join('') : `<div class="nores">${plants.length ? 'Rien ne correspond.' : 'Rien encore : allez au pied d’une plante et touchez « Au pied d’une plante ».'}</div>`;
+}
+function renderChips() {}
+$('inv-tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (!b) return; invTab = b.dataset.tab; renderList(); };
+$('btn-list').onclick = () => { renderList(); openSheet('sheet-list'); if (me == null) startWatch(); };
 $('btn-list-close').onclick = () => closeSheets();
-$('list').onclick = e => { const zt = e.target.closest('.ztag'); if (zt) { const z = zones.find(x => x.id === zt.dataset.zid); if (z) { if (z.pts && z.pts.length) map.fitBounds(L.latLngBounds(z.pts).pad(.6), { maxZoom: 21 }); closeSheets(); openZoneView(z); } return; } const t = e.target.closest('.tag'); if (!t) return; const p = plants.find(x => x.id === t.dataset.id); if (!p) return; if (p.zoneId) { const z = zones.find(x => x.id === p.zoneId); if (z) { closeSheets(); openPlanView(z); pvYear = startYear(p); pvSel = p.id; renderPlan(); return; } } if (p.lat != null) map.setView([p.lat, p.lng], Math.max(map.getZoom(), 20)); openPlant(p); };
-$('q').oninput = renderList; $('show-fin').onchange = renderList; $('sort').oninput = () => { if ($('sort').value === 'dist') startWatch(); renderList(); };
+$('q').oninput = renderList; $('show-fin').onchange = renderList; $('sort').oninput = renderList;
+function listActions(e, after) {
+  const b = e.target.closest('button'); if (!b) return false;
+  if (b.dataset.open) { const p = plants.find(x => x.id === b.dataset.open); if (p) { after && after(); if (p.zoneId) { const z = zones.find(x => x.id === p.zoneId); if (z) { closeSheets(); openPlanView(z); pvYear = startYear(p); pvSel = p.id; renderPlan(); openPlant(p); return true; } } openPlant(p); } return true; }
+  if (b.dataset.guide) { const p = plants.find(x => x.id === b.dataset.guide); if (p) { after && after(); closeSheets(); startFinder(p); } return true; }
+  if (b.dataset.showg) { const gr = groupPlants(currentSource()).find(g => g.key === b.dataset.showg); if (gr) { after && after(); closeSheets(); showOnMap(gr.items, `${gr.items.length} ${gr.label.toLowerCase()}${gr.items.length > 1 && !/[sx]$/.test(gr.label) ? 's' : ''}`); } return true; }
+  return false;
+}
+let srcMode = 'inv';
+const currentSource = () => srcMode === 'search' ? searchShown : invShown;
+$('list').onclick = e => {
+  srcMode = 'inv';
+  const zt = e.target.closest('.ztag'); if (zt) { const z = zones.find(x => x.id === zt.dataset.zid); if (z) { if (z.pts && z.pts.length) map.fitBounds(L.latLngBounds(z.pts).pad(.6), { maxZoom: 21 }); closeSheets(); openZoneView(z); } return; }
+  listActions(e);
+};
+$('inv-map').onclick = () => {
+  const tab = TABS.find(t => t[0] === invTab), q = $('q').value.trim();
+  const label = q ? `« ${q} »` : tab[0] === 'all' ? 'toutes les plantes' : tab[1].toLowerCase();
+  closeSheets(); showOnMap(invShown, `${invShown.filter(p => p.lat != null).length} plantes : ${label}`);
+};
+function showOnMap(list, label) {
+  const pts = list.filter(p => p.lat != null && !p.zoneId);
+  const inZones = [...new Set(list.filter(p => p.zoneId).map(p => p.zoneId))];
+  mapOnly = new Set(list.map(p => p.id));
+  $('filterbar').hidden = false; $('gpschip').style.visibility = 'hidden';
+  $('fb-text').textContent = label + (inZones.length ? ` (dont ${list.filter(p => p.zoneId).length} dans les bacs)` : '');
+  $('searchview').hidden = true;
+  renderMarkers();
+  const ll = pts.map(p => [p.lat, p.lng]); for (const id of inZones) { const z = zones.find(x => x.id === id); if (z) ll.push(...z.pts); }
+  if (ll.length === 1) map.setView(ll[0], 20); else if (ll.length) map.fitBounds(L.latLngBounds(ll).pad(.25), { maxZoom: 20 });
+}
+$('fb-all').onclick = () => { mapOnly = null; $('filterbar').hidden = true; $('gpschip').style.visibility = ''; renderMarkers(); };
+
+/* Loupe */
+let searchShown = [];
+$('btn-search').onclick = () => { closeSheets(); $('searchview').hidden = false; $('sq').value = ''; renderSearch(); setTimeout(() => $('sq').focus(), 60); if (me == null) startWatch(); };
+$('s-back').onclick = () => { $('searchview').hidden = true; };
+$('sq').oninput = renderSearch;
+function renderSearch() {
+  const q = $('sq').value.trim(), box = $('s-res');
+  if (!q) { searchShown = []; box.innerHTML = `<div class="nores">Tapez le nom d’une plante, d’une variété ou d’un bac : figuier, chêne, Reinette, Bac 2…</div>`; return; }
+  const alive = plants.filter(p => !isGone(p) && matchQuery(p, q)), gone = plants.filter(p => isGone(p) && matchQuery(p, q));
+  const zs = zones.filter(z => norm(z.nom + ' ' + ztypeOf(z.type).label).includes(norm(q)));
+  searchShown = alive;
+  const groups = groupPlants(alive).sort((a, b) => b.items.length - a.items.length);
+  let h = '';
+  if (alive.length) {
+    const head = groups.length === 1 ? `Oui : <b>${alive.length} ${esc(groups[0].label.toLowerCase())}${alive.length > 1 && !/[sx]$/.test(groups[0].label) ? 's' : ''}</b>` : `<b>${alive.length} plantes</b> trouvées`;
+    h += `<div class="answer">${head}</div>`;
+    h += groups.map(g => groupHtml(g, groups.length <= 2)).join('');
+    if (groups.length > 1 && alive.some(p => p.lat != null)) h += `<button class="ghost" id="s-showall" style="margin-top:10px">Voir les ${alive.length} sur la carte</button>`;
+  } else {
+    const kb = kbFor({ nom: q, latin: q });
+    h += `<div class="answer">Pas de « ${esc(q)} » dans le carnet.</div>`;
+    if (kb) h += `<div class="box fiche"><h4>${esc(kb.l)} <i>${esc(kb.la)}</i></h4><dl>${kb.p && kb.p !== '—' ? `<dt>Pollinisation</dt><dd>${esc(kb.p)}</dd>` : ''}${kb.r ? `<dt>Rusticité</dt><dd>${esc(kb.r)}</dd>` : ''}${kb.e ? `<dt>Exposition</dt><dd>${esc(kb.e)}</dd>` : ''}</dl><div class="row"><button class="primary" id="s-add" data-nom="${esc(kb.l)}" style="box-shadow:none;padding:10px 14px">Ajouter un ${esc(kb.l.toLowerCase())}</button></div></div>`;
+  }
+  if (gone.length) h += `<h3 style="margin-top:14px">Terminées ou mortes</h3>` + gone.map(itemHtml).join('');
+  if (zs.length) h += `<h3 style="margin-top:14px">Aménagements</h3>` + zs.map(z => `<div class="inv-item"><span class="t"><b>${esc(z.nom)}</b><span>${esc(ztypeOf(z.type).label)} · ${plants.filter(p => p.zoneId === z.id && !isGone(p)).length} plantes</span></span><button class="mini" data-zone="${esc(z.id)}">Ouvrir</button></div>`).join('');
+  box.innerHTML = h;
+}
+$('s-res').onclick = e => {
+  srcMode = 'search';
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.id === 's-showall') { closeSheets(); showOnMap(searchShown, `${searchShown.length} plantes : « ${$('sq').value.trim()} »`); return; }
+  if (b.id === 's-add') { $('searchview').hidden = true; draft = { nom: b.dataset.nom, cat: 'arbre', etat: 'ok', date: '' }; fillPlantSheet(); openSheet('sheet-plant'); setTimeout(() => { autoSpecies(); renderFiche(); renderTaskList(); }, 30); toast('Placez-la au GPS ou sur la carte, puis Enregistrer'); return; }
+  if (b.dataset.zone) { const z = zones.find(x => x.id === b.dataset.zone); if (z) { $('searchview').hidden = true; openZoneView(z); } return; }
+  listActions(e, () => { $('searchview').hidden = true; });
+};
 
 /* ===== Side buttons ===== */
 $('btn-layer').onclick = () => { baseIdx = (baseIdx + 1) % bases.length; applyBase(); toast(bases[baseIdx].name); };
@@ -959,7 +1110,7 @@ $('btn-export').onclick = async () => {
 $('btn-csv').onclick = () => {
   const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['origine', 'Origine'], ['date', 'Planté / repéré le'], ['provenance', 'Provenance'], ['etat', 'État'], ['famille', 'Famille'], ['zone', 'Emplacement'], ['dateFin', 'Terminé le'], ['qte', 'Quantité'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
   const cell = v => { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-  const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : k === 'origine' ? (p.origine === 'spontanee' ? 'Pousse spontanée' : 'Plantée') : k === 'famille' ? (famOf(p.famille) || {}).label : k === 'zone' ? ((zones.find(z => z.id === p.zoneId) || {}).nom || '') + (p.zx != null ? ` (${p.zx.toFixed(2)} m ; ${p.zy.toFixed(2)} m)` : '') : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
+  const rows = plants.map(p => cols.map(([k]) => cell(k === 'cat' ? catOf(p.cat).label : k === 'etat' ? etatOf(p.etat).label : k === 'origine' ? (p.origine === 'spontanee' ? 'Pousse spontanée' : p.origine === 'anciens' ? 'Plantée par les anciens propriétaires' : 'Plantée') : k === 'famille' ? (famOf(p.famille) || {}).label : k === 'zone' ? ((zones.find(z => z.id === p.zoneId) || {}).nom || '') + (p.zx != null ? ` (${p.zx.toFixed(2)} m ; ${p.zy.toFixed(2)} m)` : '') : (k === 'lat' || k === 'lng') && p[k] != null ? p[k].toFixed(7) : k === 'acc' && p.acc ? p.acc.toFixed(1) : p[k])).join(';'));
   downloadFile(fileSlug(carnetName()) + '.csv', new Blob(['﻿' + [cols.map(c => c[1]).join(';'), ...rows].join('\n')], { type: 'text/csv' }));
 };
 $('btn-import').onclick = () => $('f-import').click();
@@ -972,7 +1123,7 @@ $('f-import').onchange = async e => {
     for (const p of list) { if (!p.id || !p.nom || p.exemple) continue; await idb.put(p); n++; }
     for (const z of (data.zones || [])) { if (z.id && z.pts) await idb.putZone(z); }
     for (const [k, v] of Object.entries(data.meta || {})) { await idb.setMeta(k, v); meta[k] = v; }
-    plants = await idb.all(); zones = await idb.zones(); renderAll();
+    plants = await idb.all(); zones = await idb.zones(); applyTerrain(true); renderAll();
     $('backup-status').textContent = `${n} fiche${n > 1 ? 's' : ''} importée${n > 1 ? 's' : ''}.`;
   } catch (err) { $('backup-status').textContent = 'Ce fichier n’est pas une sauvegarde du carnet.'; }
 };
@@ -1057,6 +1208,7 @@ function zoneShapeInfo() {
   const z = zdraft;
   $('z-shape-info').textContent = z.pts && z.pts.length >= 3 ? (z.rect ? `rectangle ${String(z.rect.L).replace('.', ',')} × ${String(z.rect.W).replace('.', ',')} m` : z.circle ? `rond Ø ${String(z.circle.D).replace('.', ',')} m` : `${z.pts.length} coins`) + ' · ' + fmtArea(areaM2(z.pts)) : 'pas encore dessinée';
   syncShape();
+  $('z-move').hidden = !(z.pts && z.pts.length >= 3);
 }
 function fillZoneSheet() {
   const z = zdraft;
@@ -1085,7 +1237,8 @@ function showZoneBar(mode) {
   $('zonebar').hidden = false; $('crosshair').hidden = false;
   $('planview').hidden = true;
   $('zb-rect').hidden = mode !== 'rect'; $('zb-rectgps').hidden = mode === 'free'; $('zb-free').hidden = mode !== 'free';
-  $('zb-hint').textContent = mode === 'cercle' ? 'Déplacez la carte pour mettre la croix au centre du rond, ou touchez « Je suis au centre ».' : mode === 'rect' ? 'Déplacez la carte pour mettre la croix au centre, puis tournez avec le curseur ou les boutons.' : 'Placez la croix sur un coin et touchez « Coin sous la croix », ou allez au coin et touchez « Coin au GPS ». Faites le tour dans l’ordre.';
+  if (mode === 'shift') $('zb-hint').textContent = '';
+  if (mode !== 'shift') $('zb-hint').textContent = mode === 'cercle' ? 'Déplacez la carte pour mettre la croix au centre du rond, ou touchez « Je suis au centre ».' : mode === 'rect' ? 'Déplacez la carte pour mettre la croix au centre, puis tournez avec le curseur ou les boutons.' : 'Placez la croix sur un coin et touchez « Coin sous la croix », ou allez au coin et touchez « Coin au GPS ». Faites le tour dans l’ordre.';
   ['btn-add', 'btn-list'].forEach(i => $(i).hidden = true);
 }
 function hideZoneBar() { $('zonebar').hidden = true; $('crosshair').hidden = true; zmode = null; ['btn-add', 'btn-list'].forEach(i => $(i).hidden = false); }
@@ -1139,7 +1292,7 @@ function placeFree() {
   if (zdraft.pts && zdraft.pts.length) map.fitBounds(L.latLngBounds(zdraft.pts).pad(.8), { maxZoom: 21 }); else map.setView(shapeStart(), Math.max(map.getZoom(), 20));
   showZoneBar('free'); updFree();
 }
-map.on('move', () => { if (zmode === 'rect') updRect(); else if (zmode === 'cercle') updCircle(); });
+map.on('move', () => { if (zmode === 'rect') updRect(); else if (zmode === 'cercle') updCircle(); else if (zmode === 'shift') updShift(); });
 $('zb-angle').oninput = () => updRect();
 document.querySelector('.rotbtns').onclick = e => { const b = e.target.closest('[data-rot]'); if (!b) return; const a = ((+$('zb-angle').value + +b.dataset.rot) % 180 + 180) % 180; $('zb-angle').value = a; updRect(); };
 $('zb-addpt').onclick = () => { const c = map.getCenter(); zwork.pts.push([c.lat, c.lng]); updFree(); };
@@ -1150,8 +1303,9 @@ function zoneGps(cb) {
   capture.onCancel = () => { $('zonebar').hidden = false; $('backdrop').hidden = true; };
 }
 $('zb-gpspt').onclick = () => zoneGps(r => { zwork.pts.push([r.lat, r.lng]); map.panTo([r.lat, r.lng]); updFree(); });
-$('zb-centergps').onclick = () => zoneGps(r => { map.setView([r.lat, r.lng], map.getZoom()); zmode === 'cercle' ? updCircle() : updRect(); });
+$('zb-centergps').onclick = () => zoneGps(r => { map.setView([r.lat, r.lng], map.getZoom()); zmode === 'cercle' ? updCircle() : zmode === 'shift' ? updShift() : updRect(); });
 $('zb-ok').onclick = () => {
+  if (zmode === 'shift') { zdraft.pts = zwork.pts; delete zdraft.frame; hideZoneBar(); fillZoneSheet(); openSheet('sheet-zone'); toast('Touchez Enregistrer pour garder la nouvelle place'); return; }
   if (zmode === 'rect') { zdraft.pts = zwork.pts; zdraft.rect = { lat: zwork.center.lat, lng: zwork.center.lng, L: zwork.L, W: zwork.W, angle: zwork.angle }; delete zdraft.circle; }
   else if (zmode === 'cercle') { zdraft.pts = zwork.pts; zdraft.circle = { lat: zwork.center.lat, lng: zwork.center.lng, D: zwork.D }; delete zdraft.rect; }
   else { if (zwork.pts.length < 3) { toast('Il faut au moins 3 coins.'); return; } zdraft.pts = zwork.pts; delete zdraft.rect; delete zdraft.circle; }
@@ -1589,7 +1743,7 @@ const SPECIES = [
   { n: ['cerisier', 'bigarreautier', 'prunus avium'], l: 'Cerisier', la: 'Prunus avium', c: 'arbre', p: 'Souvent autostérile (sauf Stella, Lapins, Sunburst…) : prévoir un 2e cerisier compatible.', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol drainé ; craint l’eau stagnante.', t: 'Peu de taille, et seulement après la récolte (jamais en hiver : risque de gomme et de maladies).', h: 'Juin-juillet ; un filet contre les oiseaux aide beaucoup.', k: ['6,7|recolte|Récolte (filet contre les oiseaux)', '8|taille|Taille légère après récolte (jamais en hiver)', '11|paillage|Pailler le pied'] },
   { n: ['griottier', 'cerisier acide', 'prunus cerasus'], l: 'Griottier', la: 'Prunus cerasus', c: 'arbre', p: 'Autofertile, et bon pollinisateur des cerisiers.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, peu exigeant.', t: 'Après récolte : renouveler les rameaux qui ont fructifié.', h: 'Juillet ; cerises acidulées pour clafoutis, confitures, griottes à l’eau-de-vie.', k: ['7|recolte|Récolte des griottes', '8|taille|Taille légère après récolte'] },
   { n: ['prunier', 'mirabellier', 'mirabelle', 'quetschier', 'reine claude', 'prunus domestica', 'prunus insititia'], l: 'Prunier', la: 'Prunus domestica', c: 'arbre', p: 'Variable : Reine-Claude d’Oullins, Mirabelle de Nancy, Quetsche sont autofertiles ; beaucoup d’autres ont besoin d’un 2e prunier.', r: 'Jusqu’à -20 °C.', e: 'Soleil, sol pas trop sec ; tolère le calcaire.', t: 'Peu de taille, en fin d’été après récolte.', h: 'Juillet à septembre selon la variété.', k: ['6|eclaircir|Éclaircir si l’arbre est très chargé', '7,8,9|recolte|Récolte', '8|taille|Taille légère après récolte', '11|paillage|Pailler le pied'] },
-  { n: ['pecher', 'nectarinier', 'brugnonier', 'prunus persica'], l: 'Pêcher', la: 'Prunus persica', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -15 °C ; floraison très précoce, sensible au gel.', e: 'Plein soleil, abrité, sol drainé.', t: 'Il fructifie sur le bois de l’année précédente : tailler chaque printemps pour renouveler.', h: 'Juillet à septembre.', x: 'La cloque est son gros souci : planter des variétés résistantes, ou traiter au débourrement.', k: ['2|cloque|Prévenir la cloque au débourrement (bouillie bordelaise)', '3|taille|Taille à la floraison', '5,6|eclaircir|Éclaircir : 1 fruit tous les 15 cm', '7,8,9|recolte|Récolte'] },
+  { n: ['pecher', 'peche', 'peche de vigne', 'pecher de vigne', 'nectarinier', 'brugnonier', 'prunus persica'], l: 'Pêcher', la: 'Prunus persica', c: 'arbre', p: 'Autofertile.', r: 'Jusqu’à -15 °C ; floraison très précoce, sensible au gel.', e: 'Plein soleil, abrité, sol drainé.', t: 'Il fructifie sur le bois de l’année précédente : tailler chaque printemps pour renouveler.', h: 'Juillet à septembre.', x: 'La cloque est son gros souci : planter des variétés résistantes, ou traiter au débourrement.', k: ['2|cloque|Prévenir la cloque au débourrement (bouillie bordelaise)', '3|taille|Taille à la floraison', '5,6|eclaircir|Éclaircir : 1 fruit tous les 15 cm', '7,8,9|recolte|Récolte'] },
   { n: ['abricotier', 'prunus armeniaca'], l: 'Abricotier', la: 'Prunus armeniaca', c: 'arbre', p: 'Autofertile pour la plupart des variétés.', r: 'L’arbre tient -20 °C, mais la floraison très précoce gèle souvent.', e: 'Plein soleil, abrité (contre un mur), sol drainé, même calcaire.', t: 'Légère, après la récolte.', h: 'Juillet.', k: ['5|eclaircir|Éclaircir si très chargé', '7|recolte|Récolte', '8|taille|Taille légère après récolte'] },
   { n: ['amandier', 'prunus dulcis'], l: 'Amandier', la: 'Prunus dulcis', c: 'arbre', p: 'Souvent autostérile (Lauranne, Ferragnès…) : vérifier, ou planter 2 variétés.', r: 'Jusqu’à -20 °C, mais fleurit en février-mars : préférer des variétés tardives.', e: 'Plein soleil, sol sec et drainé, calcaire accepté.', t: 'Très peu, après la récolte.', h: 'Septembre, quand la coque s’ouvre.', k: ['9|recolte|Récolte des amandes'] },
   { n: ['figuier', 'ficus'], l: 'Figuier', la: 'Ficus carica', c: 'arbre', p: 'Les variétés cultivées en France sont autofertiles.', r: 'Jusqu’à -12/-15 °C adulte ; repart de la souche s’il gèle.', e: 'Plein soleil, abrité du vent, idéal contre un mur au sud ; supporte le sec.', t: 'Le moins possible, en fin d’hiver ; ne pas raccourcir les rameaux au printemps (on perd les figues-fleurs).', h: 'Août-septembre ; variétés bifères : aussi des figues-fleurs fin juin-juillet.', k: ['3|taille|Enlever le bois mort (ne pas raccourcir les rameaux)', '6,7|figuesfleurs|Récolte des figues-fleurs (variétés bifères)', '8,9|recolte|Récolte des figues d’automne', '11|paillage|Pailler épais au pied pour l’hiver'] },
@@ -1623,7 +1777,7 @@ const SPECIES = [
   { n: ['murier ronce', 'murier sans epines', 'mure', 'ronce', 'rubus'], l: 'Ronce fruitière', la: 'Rubus fruticosus', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -20 °C.', e: 'Soleil, palissage conseillé.', t: 'Couper les cannes qui ont fructifié.', h: 'Août-septembre.', k: ['8,9|recolte|Récolte des mûres', '11|taille|Couper les cannes ayant fructifié'] },
   { n: ['cassissier', 'cassis', 'ribes nigrum'], l: 'Cassissier', la: 'Ribes nigrum', c: 'petit', p: 'Partiellement autofertile : mieux avec 2 variétés.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol frais ; paillage indispensable.', t: 'En hiver : supprimer le bois de plus de 3 ans.', h: 'Juillet ; les feuilles en infusion.', k: ['1,2|taille|Taille : supprimer le vieux bois', '3|paillage|Pailler', '7|recolte|Récolte'] },
   { n: ['groseillier a maquereau', 'ribes uva crispa'], l: 'Groseillier à maquereau', la: 'Ribes uva-crispa', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Mi-ombre appréciée, sol frais.', t: 'Aérer le centre en hiver (épineux).', h: 'Juillet.', k: ['1,2|taille|Taille : aérer le centre', '7|recolte|Récolte'] },
-  { n: ['caseillier', 'josta', 'ribes nidigrolaria'], l: 'Caseillier', la: 'Ribes × nidigrolaria', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, vigoureux.', t: 'Supprimer le vieux bois en hiver.', h: 'Juillet.', k: ['1,2|taille|Taille : supprimer le vieux bois', '7|recolte|Récolte'] },
+  { n: ['caseillier', 'caseiller', 'casseillier', 'josta', 'ribes nidigrolaria', 'ribes × nidigrolaria'], l: 'Caseillier', la: 'Ribes × nidigrolaria', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, vigoureux.', t: 'Supprimer le vieux bois en hiver.', h: 'Juillet.', k: ['1,2|taille|Taille : supprimer le vieux bois', '7|recolte|Récolte'] },
   { n: ['groseillier', 'groseille', 'ribes'], l: 'Groseillier', la: 'Ribes rubrum', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol frais, paillé.', t: 'En hiver : aérer, supprimer le bois de plus de 3 ans.', h: 'Juin-juillet.', k: ['1,2|taille|Taille : aérer, supprimer le vieux bois', '3|paillage|Pailler', '6,7|recolte|Récolte'] },
   { n: ['myrtillier', 'myrtille', 'vaccinium corymbosum', 'vaccinium'], l: 'Myrtillier', la: 'Vaccinium corymbosum', c: 'petit', p: 'Partiellement autofertile : 2 variétés donnent bien plus.', r: 'Jusqu’à -25 °C.', e: 'Sol acide obligatoire (terre de bruyère), frais ; soleil ou mi-ombre.', t: 'Supprimer les vieilles branches à partir de 4-5 ans.', h: 'Juillet-août.', k: ['3|paillage|Pailler (copeaux, aiguilles de pin)', '7,8|recolte|Récolte'] },
   { n: ['camerise', 'camerisier', 'lonicera caerulea'], l: 'Camerisier', la: 'Lonicera caerulea', c: 'petit', p: 'Autostérile : planter 2 variétés.', r: 'Jusqu’à -35 °C.', e: 'Soleil ou mi-ombre, sol frais.', t: 'Presque aucune.', h: 'Mai-juin, parmi les premiers fruits de l’année.', k: ['5,6|recolte|Récolte'] },
@@ -1632,7 +1786,7 @@ const SPECIES = [
   { n: ['argousier', 'hippophae'], l: 'Argousier', la: 'Hippophae rhamnoides', c: 'petit', p: 'Dioïque : 1 pied mâle pour 5 à 6 femelles.', r: 'Jusqu’à -30 °C.', e: 'Plein soleil, sol pauvre et drainé ; fixe l’azote, drageonne.', t: 'Peu ; récolter en coupant des rameaux fructifères.', h: 'Septembre-octobre, baies très riches en vitamine C (jus).', k: ['9,10|recolte|Récolte des baies'] },
   { n: ['cornouiller male', 'cornus mas'], l: 'Cornouiller mâle', la: 'Cornus mas', c: 'petit', p: 'Partiellement autofertile, mieux avec 2 pieds.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, calcaire accepté.', t: 'Aucune.', h: 'Août-septembre, cornouilles à manger bien mûres.', k: ['8,9|recolte|Récolte des cornouilles'] },
   { n: ['aronia'], l: 'Aronia', la: 'Aronia melanocarpa', c: 'petit', p: 'Autofertile.', r: 'Jusqu’à -30 °C.', e: 'Soleil ou mi-ombre, peu exigeant.', t: 'Supprimer les vieilles tiges.', h: 'Août-septembre, baies astringentes (jus, confitures).', k: ['8,9|recolte|Récolte'] },
-  { n: ['eleagnus', 'chalef', 'goumi', 'elaeagnus'], l: 'Éléagnus', la: 'Elaeagnus sp.', c: 'haie', p: 'E. multiflora (goumi) autofertile ; E. umbellata mieux avec 2 pieds.', r: 'Jusqu’à -20/-25 °C (E. × ebbingei vers -15 °C).', e: 'Soleil ou mi-ombre, sol pauvre ; fixe l’azote.', t: 'Taille de haie après fructification.', h: 'Ebbingei : avril-mai ; goumi : juin-juillet ; umbellata : octobre.', k: ['5,6,10|recolte|Récolte (selon l’espèce)'] },
+  { n: ['eleagnus', 'chalef', 'chalef d automne', 'goumi', 'elaeagnus'], l: 'Éléagnus', la: 'Elaeagnus sp.', c: 'haie', p: 'E. multiflora (goumi) autofertile ; E. umbellata mieux avec 2 pieds.', r: 'Jusqu’à -20/-25 °C (E. × ebbingei vers -15 °C).', e: 'Soleil ou mi-ombre, sol pauvre ; fixe l’azote.', t: 'Taille de haie après fructification.', h: 'Ebbingei : avril-mai ; goumi : juin-juillet ; umbellata : octobre.', k: ['5,6,10|recolte|Récolte (selon l’espèce)'] },
   { n: ['eglantier', 'cynorhodon', 'rosa canina', 'rosier rugueux', 'rosa rugosa'], l: 'Églantier', la: 'Rosa canina', c: 'haie', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil, tout sol.', t: 'Aucune.', h: 'Octobre-novembre, cynorhodons après les premières gelées.', k: ['10,11|recolte|Récolte des cynorhodons'] },
   { n: ['aubepine', 'crataegus'], l: 'Aubépine', la: 'Crataegus monogyna', c: 'haie', p: 'Autofertile.', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, tout sol.', t: 'Taille de haie en fin d’hiver.', h: 'Fleurs au printemps, cenelles en automne.', k: [] },
   { n: ['kiwai', 'mini kiwi', 'actinidia arguta'], l: 'Kiwaï', la: 'Actinidia arguta', c: 'grimp', p: 'Dioïque sauf « Issaï » : un mâle pour plusieurs femelles.', r: 'Jusqu’à -25 °C ; jeunes pousses sensibles aux gelées tardives.', e: 'Soleil ou mi-ombre, sol frais, support solide.', t: 'Taille d’hiver et taille en vert, comme le kiwi.', h: 'Septembre-octobre, petits kiwis à peau lisse.', k: ['1,2|taille|Taille d’hiver', '6,7|vert|Taille en vert, palissage', '9,10|recolte|Récolte'] },
@@ -1641,6 +1795,43 @@ const SPECIES = [
   { n: ['akebia'], l: 'Akébia', la: 'Akebia quinata', c: 'grimp', p: 'Partiellement autostérile : 2 pieds différents pour avoir des fruits.', r: 'Jusqu’à -20 °C.', e: 'Soleil ou mi-ombre, support.', t: 'Contenir après floraison.', h: 'Septembre-octobre, fruits violets à pulpe sucrée.', k: ['9,10|recolte|Récolte'] },
   { n: ['schisandra', 'schizandra'], l: 'Schisandra', la: 'Schisandra chinensis', c: 'grimp', p: 'Souvent dioïque : prévoir mâle et femelle.', r: 'Jusqu’à -25 °C.', e: 'Mi-ombre, sol frais.', t: 'Légère en hiver.', h: 'Septembre, grappes rouges « aux 5 saveurs ».', k: ['9|recolte|Récolte'] },
   { n: ['houblon', 'humulus'], l: 'Houblon', la: 'Humulus lupulus', c: 'grimp', p: 'Dioïque : seuls les pieds femelles font des cônes.', r: 'Jusqu’à -25 °C.', e: 'Soleil, sol riche, support haut.', t: 'Tout couper au ras en fin d’hiver.', h: 'Jets au printemps (comme des asperges), cônes en août-septembre.', k: ['2|taille|Couper au ras', '4|jets|Cueillir les jeunes jets', '8,9|recolte|Récolte des cônes'] },
+  // ---------- Arbres forestiers et sauvages
+  { n: ['chene', 'quercus'], l: 'Chêne', la: 'Quercus sp.', c: 'foret', p: '—', r: 'Très rustique.', e: 'Soleil ; pédonculé en sol frais, pubescent en sol sec et calcaire.', t: 'Aucune nécessaire.', h: 'Glands en automne : toxiques pour chevaux et bovins en quantité, appréciés des cochons et des geais.', x: 'Pubescent : dessous des feuilles duveteux. Pédonculé : feuilles lisses presque sans queue, glands portés sur une longue queue.', k: [] },
+  { n: ['robinier', 'faux acacia', 'acacia', 'robinia'], l: 'Robinier faux-acacia', la: 'Robinia pseudoacacia', c: 'foret', p: '—', r: 'Très rustique.', e: 'Soleil, tout sol, même pauvre et sec ; fixe l’azote.', t: 'Supporte très bien la coupe (recépage, bois de piquets imputrescible).', h: 'Fleurs comestibles en mai (beignets) ; le reste de l’arbre est toxique (écorce, graines, feuilles).', x: 'Drageonne et se ressème beaucoup : surveiller qu’il n’envahisse pas. Très mellifère.', k: ['5|fleurs|Cueillir les fleurs (beignets)'] },
+  { n: ['frene', 'fraxinus'], l: 'Frêne', la: 'Fraxinus excelsior', c: 'foret', p: '—', r: 'Très rustique.', e: 'Sol frais.', t: 'Peut être conduit en têtard (fourrage).', h: '—', x: 'Sensible à la chalarose : surveiller le dessèchement des rameaux.', k: [] },
+  { n: ['erable', 'acer'], l: 'Érable', la: 'Acer sp.', c: 'foret', p: '—', r: 'Très rustique.', e: 'Soleil ou mi-ombre.', t: 'Fin d’été ou début d’hiver (il pleure au printemps).', h: '—', k: [] },
+  { n: ['charme', 'carpinus'], l: 'Charme', la: 'Carpinus betulus', c: 'foret', p: '—', r: 'Très rustique.', e: 'Soleil ou mi-ombre, tout sol.', t: 'Très bien en haie taillée.', h: '—', k: [] },
+  { n: ['hetre', 'fagus'], l: 'Hêtre', la: 'Fagus sylvatica', c: 'foret', p: '—', r: 'Très rustique.', e: 'Mi-ombre, sol frais ; craint la sécheresse.', t: '—', h: 'Faînes à l’automne (en petite quantité).', k: [] },
+  { n: ['bouleau', 'betula'], l: 'Bouleau', la: 'Betula pendula', c: 'foret', p: '—', r: 'Très rustique.', e: 'Soleil, sol léger.', t: '—', h: 'Sève au printemps.', k: [] },
+  { n: ['saule', 'salix'], l: 'Saule', la: 'Salix sp.', c: 'foret', p: '—', r: 'Très rustique.', e: 'Sol frais à humide.', t: 'Têtard ou osier : couper en hiver.', h: 'Osier pour vannerie, boutures faciles.', k: [] },
+  { n: ['peuplier', 'tremble', 'populus'], l: 'Peuplier', la: 'Populus sp.', c: 'foret', p: '—', r: 'Très rustique.', e: 'Sol frais.', t: '—', h: '—', k: [] },
+  { n: ['tilleul', 'tilia'], l: 'Tilleul', la: 'Tilia sp.', c: 'foret', p: '—', r: 'Très rustique.', e: 'Soleil ou mi-ombre, sol frais.', t: 'Supporte la taille en têtard.', h: 'Fleurs (bractées) en juin-juillet pour l’infusion ; jeunes feuilles en salade.', x: 'Très mellifère.', k: ['6,7|fleurs|Cueillir les fleurs (infusion)'] },
+  { n: ['aulne', 'alnus'], l: 'Aulne', la: 'Alnus sp.', c: 'foret', p: '—', r: 'Très rustique.', e: 'Sol frais à humide ; fixe l’azote.', t: 'Recépage possible.', h: '—', k: [] },
+  { n: ['merisier', 'cerisier sauvage'], l: 'Merisier', la: 'Prunus avium', c: 'foret', p: '—', r: 'Très rustique.', e: 'Soleil, sol frais.', t: '—', h: 'Petites cerises en juin.', k: ['6|recolte|Récolte des merises'] },
+  { n: ['prunellier', 'prunelier', 'prunelle', 'prunus spinosa'], l: 'Prunellier', la: 'Prunus spinosa', c: 'haie', p: '—', r: 'Très rustique.', e: 'Soleil, tout sol ; drageonne.', t: 'Taille de haie.', h: 'Prunelles après les premières gelées (liqueur, gelée).', k: ['11|recolte|Récolte des prunelles après gel'] },
+  { n: ['cornouiller sanguin', 'cornus sanguinea'], l: 'Cornouiller sanguin', la: 'Cornus sanguinea', c: 'haie', p: '—', r: 'Très rustique.', e: 'Tout sol.', t: 'Recéper les vieilles tiges.', h: '—', k: [] },
+  { n: ['fusain', 'euonymus'], l: 'Fusain', la: 'Euonymus europaeus', c: 'haie', p: '—', r: 'Très rustique.', e: 'Tout sol.', t: '—', h: '—', x: 'Toxique (fruits roses très attirants pour les enfants).', k: [] },
+  { n: ['houx', 'ilex'], l: 'Houx', la: 'Ilex aquifolium', c: 'haie', p: 'Dioïque : seuls les pieds femelles ont des baies.', r: 'Très rustique.', e: 'Mi-ombre.', t: '—', h: '—', x: 'Baies toxiques.', k: [] },
+  { n: ['if', 'taxus'], l: 'If', la: 'Taxus baccata', c: 'haie', p: '—', r: 'Très rustique.', e: 'Ombre ou soleil.', t: 'Très bien en haie taillée.', h: '—', x: 'Très toxique pour les humains et les animaux (feuillage et graines), sauf la chair rouge du fruit.', k: [] },
+  { n: ['pin', 'pinus'], l: 'Pin', la: 'Pinus sp.', c: 'foret', p: '—', r: 'Rustique.', e: 'Soleil, sol drainé.', t: '—', h: 'Aiguilles en paillage pour les plantes de terre acide.', k: [] },
+  { n: ['genevrier', 'juniperus'], l: 'Genévrier', la: 'Juniperus communis', c: 'haie', p: 'Dioïque.', r: 'Très rustique.', e: 'Soleil, sol pauvre et sec.', t: '—', h: 'Baies (sur pied femelle) en épice.', k: [] },
+  { n: ['buis', 'buxus'], l: 'Buis', la: 'Buxus sempervirens', c: 'haie', p: '—', r: 'Très rustique.', e: 'Ombre ou soleil.', t: 'Taille en juin.', h: '—', x: 'Surveiller la pyrale du buis au printemps.', k: [] },
+  { n: ['ragouminier', 'cerisier de nankin', 'prunus tomentosa'], l: 'Ragouminier', la: 'Prunus tomentosa', c: 'petit', p: 'Partiellement autofertile : 2 pieds donnent bien plus.', r: 'Jusqu’à -30 °C.', e: 'Soleil, sol drainé ; supporte bien le sec.', t: 'Légère après récolte, renouveler les vieilles branches.', h: 'Juin-juillet : petites cerises rouges acidulées.', k: ['6,7|recolte|Récolte des cerises de Nankin'] },
+  { n: ['chevrefeuille d hiver', 'lonicera fragrantissima'], l: 'Chèvrefeuille d’hiver', la: 'Lonicera fragrantissima', c: 'haie', p: '—', r: 'Jusqu’à -20 °C.', e: 'Soleil ou mi-ombre, tout sol.', t: 'Après la floraison si besoin.', h: 'Fleurs très parfumées de décembre à mars : nourriture précieuse pour les premières abeilles.', k: [] },
+  { n: ['arbre a faisan', 'leycesteria'], l: 'Arbre à faisan', la: 'Leycesteria formosa', c: 'haie', p: '—', r: 'Jusqu’à -15 °C ; repart de la souche.', e: 'Soleil ou mi-ombre, sol frais.', t: 'Rabattre les vieilles tiges en fin d’hiver.', h: 'Août-octobre : baies bien noires comestibles, goût caramel-chocolat ; adorées des oiseaux.', k: ['2|taille|Rabattre les vieilles tiges', '9|recolte|Goûter les baies bien noires'] },
+  { n: ['lilas des indes', 'lagerstroemia'], l: 'Lilas des Indes', la: 'Lagerstroemia indica', c: 'haie', p: '—', r: 'Jusqu’à -15 °C.', e: 'Plein soleil, chaleur, sol drainé.', t: 'En fin d’hiver, raccourcir les rameaux de l’an passé (il fleurit sur le bois de l’année).', h: 'Floraison d’été.', k: ['3|taille|Tailler les rameaux de l’an passé'] },
+  { n: ['eucalyptus'], l: 'Eucalyptus', la: 'Eucalyptus sp.', c: 'foret', p: '—', r: 'Variable : E. gunnii jusqu’à -15 °C.', e: 'Plein soleil.', t: 'Supporte le recépage.', h: 'Feuilles pour infusion, inhalation.', x: 'Pousse très vite et sèche le sol autour.', k: [] },
+  { n: ['ginkgo', 'ginko'], l: 'Ginkgo', la: 'Ginkgo biloba', c: 'foret', p: 'Dioïque : les pieds femelles font des fruits à l’odeur forte.', r: 'Très rustique.', e: 'Soleil, tout sol.', t: 'Aucune.', h: 'Amandes des fruits femelles (cuites, en petite quantité).', x: 'Croissance lente au début ; très résistant.', k: [] },
+  // ---------- Fleurs et mellifères
+  { n: ['bourrache', 'borago'], l: 'Bourrache', la: 'Borago officinalis', c: 'fleur', p: '—', r: 'Annuelle, se ressème seule.', e: 'Soleil.', t: '—', h: 'Fleurs bleues comestibles ; très mellifère.', k: [] },
+  { n: ['phacelie', 'phacelia'], l: 'Phacélie', la: 'Phacelia tanacetifolia', c: 'fleur', p: '—', r: 'Annuelle.', e: 'Soleil, tout sol ; engrais vert.', t: '—', h: 'Très mellifère.', k: [] },
+  { n: ['souci', 'calendula'], l: 'Souci', la: 'Calendula officinalis', c: 'fleur', p: '—', r: 'Annuelle, se ressème.', e: 'Soleil.', t: '—', h: 'Pétales comestibles ; attire les auxiliaires.', k: [] },
+  { n: ['capucine', 'tropaeolum'], l: 'Capucine', la: 'Tropaeolum majus', c: 'fleur', p: '—', r: 'Annuelle, gélive.', e: 'Soleil, sol pauvre.', t: '—', h: 'Fleurs et feuilles comestibles ; plante piège à pucerons.', k: [] },
+  { n: ['cosmos'], l: 'Cosmos', la: 'Cosmos bipinnatus', c: 'fleur', p: '—', r: 'Annuelle.', e: 'Soleil.', t: '—', h: 'Attire les auxiliaires.', k: [] },
+  { n: ['echinacee', 'echinacea'], l: 'Échinacée', la: 'Echinacea purpurea', c: 'fleur', p: '—', r: 'Vivace rustique.', e: 'Soleil, sol drainé.', t: 'Laisser les têtes l’hiver pour les oiseaux.', h: 'Mellifère.', k: [] },
+  { n: ['achillee', 'achillea'], l: 'Achillée', la: 'Achillea millefolium', c: 'fleur', p: '—', r: 'Vivace très rustique.', e: 'Soleil, sol sec.', t: '—', h: 'Attire les auxiliaires.', k: [] },
+  { n: ['rose tremiere', 'alcea'], l: 'Rose trémière', la: 'Alcea rosea', c: 'fleur', p: '—', r: 'Bisannuelle, se ressème.', e: 'Soleil.', t: '—', h: '—', k: [] },
+  { n: ['tournesol', 'helianthus annuus'], l: 'Tournesol', la: 'Helianthus annuus', c: 'fleur', f: 'ast', p: '—', r: 'Annuel.', e: 'Plein soleil.', t: '—', h: 'Graines pour les oiseaux et les poules.', k: [] },
   // ---------- Vivaces comestibles et légumes perpétuels
   { n: ['fraisier', 'fraise', 'fragaria'], l: 'Fraisier', la: 'Fragaria × ananassa', c: 'couvre', f: 'ros', p: 'Autofertile.', r: 'Jusqu’à -15 °C et plus.', e: 'Soleil, sol riche et paillé.', t: 'Couper les stolons, renouveler les pieds tous les 3-4 ans.', h: 'Mai à juillet, jusqu’en automne pour les remontants.', k: ['3|nettoyer|Nettoyer et pailler', '5,6,7|recolte|Récolte', '8|stolons|Couper ou repiquer les stolons'] },
   { n: ['rhubarbe', 'rheum'], l: 'Rhubarbe', la: 'Rheum rhabarbarum', c: 'vivace', f: 'pol', p: '—', r: 'Jusqu’à -25 °C.', e: 'Soleil ou mi-ombre, sol riche.', t: 'Couper les hampes florales.', h: 'Avril à juin (pas après juillet) ; les feuilles sont toxiques.', k: ['4,5,6|recolte|Récolte des tiges (pas après juillet)', '11|compost|Compost au pied'] },
@@ -1907,6 +2098,29 @@ $('tr-later').onclick = () => { closeSheets(); trDraft = null; };
 const _placeCancel = $('place-cancel').onclick;
 $('place-cancel').onclick = () => { if (!$('sheet-terrain').hidden || (trDraft && !draft)) { endPlace(); openTerrainKeep(); return; } _placeCancel(); };
 
+/* Déplacer une zone entière (forme libre : translation ; rectangle et rond : repositionnement) */
+function startShift() {
+  readZoneForm();
+  const f = computeFrame(zdraft);
+  zwork = { src: zdraft.pts.map(p => [...p]), c0: { lat: f.lat, lng: f.lng }, pts: zdraft.pts };
+  map.setView([f.lat, f.lng], Math.max(map.getZoom(), 20), { animate: false });
+  showZoneBar('shift');
+  $('zb-hint').textContent = 'Faites glisser la carte : la forme suit la croix (placée en son centre).';
+  updShift();
+}
+function updShift() {
+  const c = map.getCenter(), dLa = c.lat - zwork.c0.lat, dLn = c.lng - zwork.c0.lng;
+  zwork.pts = zwork.src.map(([la, ln]) => [la + dLa, ln + dLn]);
+  $('zb-info').textContent = `${zwork.pts.length} coins · ${fmtArea(areaM2(zwork.pts))}`;
+  drawDraft(zwork.pts);
+}
+function moveZone() {
+  if (zdraft.rect) placeRect(); else if (zdraft.circle) placeCircle(); else startShift();
+  if (zdraft.rect || zdraft.circle) $('zb-hint').textContent = 'Faites glisser la carte : la forme suit la croix (placée en son centre).' + (zdraft.rect ? ' Le curseur et les boutons la font tourner.' : '');
+}
+$('z-move').onclick = moveZone;
+$('pv-move').onclick = () => { const z = pvZone; closePlanView(); zdraft = JSON.parse(JSON.stringify(z)); fillZoneSheet(); moveZone(); };
+
 /* ===== Dupliquer ===== */
 function nextName(nom, taken) {
   let m = String(nom).match(/^(.*?)\s*\((\d+)\)$/), fmt, i;
@@ -1941,10 +2155,34 @@ $('btn-dup').onclick = () => {
   toast('Copie prête : placez-la au GPS ou sur la carte, puis Enregistrer');
 };
 
+/* ===== Bouton Retour du téléphone : ferme ce qui est ouvert au lieu de quitter ===== */
+const vis = id => !$(id).hidden;
+function backAction() {
+  if (vis('sheet-capture')) { $('cap-cancel').click(); return true; }
+  const sheets = [['sheet-move', 'mv-cancel'], ['sheet-pick', 'pk-cancel'], ['sheet-row', 'r-cancel'], ['sheet-repiq', 'rq-cancel'], ['sheet-ics', 'ics-close'], ['sheet-terrain', 'tr-later'], ['sheet-plant', 'btn-close'], ['sheet-zone', 'z-close'], ['sheet-list', 'btn-list-close'], ['sheet-menu', 'btn-menu-close']];
+  for (const [sh, btn] of sheets) if (vis(sh)) { $(btn).click(); return true; }
+  if (vis('placebar')) { $('place-cancel').click(); return true; }
+  if (vis('zonebar')) { $('zb-cancel').click(); return true; }
+  if (vis('planview')) { pvMode ? $('pv-modeend').click() : $('pv-back').click(); return true; }
+  if (vis('searchview')) { $('s-back').click(); return true; }
+  if (vis('calview')) { $('cal-back').click(); return true; }
+  if (vis('finder')) { $('f-close').click(); return true; }
+  if (vis('filterbar')) { $('fb-all').click(); return true; }
+  return false;
+}
+let backArmed = 0;
+try { history.replaceState({ base: 1 }, ''); history.pushState({ app: 1 }, ''); } catch (e) {}
+addEventListener('popstate', () => {
+  if (backAction()) { try { history.pushState({ app: 1 }, ''); } catch (e) {} return; }
+  if (Date.now() - backArmed < 2500) { history.back(); return; }   // 2e appui rapide : on quitte
+  backArmed = Date.now(); toast('Appuyez encore sur Retour pour quitter');
+  try { history.pushState({ app: 1 }, ''); } catch (e) {}
+});
+
 /* ===== Boot ===== */
 CATS.forEach(c => $('f-cat').insertAdjacentHTML('beforeend', `<option value="${c.id}">${c.label}</option>`));
 ETATS.forEach(e => $('f-etat').insertAdjacentHTML('beforeend', `<option value="${e.id}">${e.label}</option>`));
-function renderAll() { updCalBadge(); refreshDatalist(); renderStats(); renderZones(); renderMarkers(); if (pvZone) renderPlan(); if (!$('sheet-list').hidden) { renderChips(); renderList(); } }
+function renderAll() { updCalBadge(); refreshDatalist(); renderStats(); renderZones(); renderMarkers(); if (pvZone) renderPlan(); if (!$('sheet-list').hidden) renderList(); if (!$('searchview').hidden) renderSearch(); }
 (async () => {
   try { plants = await idb.all(); zones = await idb.zones(); meta = await idb.metaAll(); } catch (e) { toast('Stockage indisponible : le carnet ne pourra pas enregistrer.'); }
   applyTerrain(true);
