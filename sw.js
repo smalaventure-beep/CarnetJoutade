@@ -1,5 +1,5 @@
 // Carnet de jardin — service worker : appli hors ligne + cache des morceaux de carte
-const APP = 'joutade-app-v10';
+const APP = 'joutade-app-v11';
 const TILES = 'joutade-tuiles-v1';
 const MAX_TILES = 6000;
 const SHELL = ['./', 'index.html', 'leaflet.js', 'leaflet.css', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];

@@ -86,7 +86,28 @@ button { cursor: pointer; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .between { justify-content: space-between; }
 .small { font-size: .8rem; color: var(--muted); }
-.photo-prev { width: 100%; max-height: 240px; object-fit: cover; border-radius: 10px; }
+.photo-prev { width: 100%; max-height: 240px; object-fit: cover; border-radius: 10px; cursor: zoom-in; }
+.photo-main { position: relative; }
+.photo-main .pdate { position: absolute; left: 8px; bottom: 10px; background: rgba(20,26,18,.78); color: #fff; font: 700 .78rem var(--f-body); padding: 3px 8px; border-radius: 6px; }
+.pstrip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.pstrip button { flex: none; border: 0; background: transparent; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pstrip img { width: 68px; height: 68px; object-fit: cover; border-radius: 8px; border: 2px solid transparent; }
+.pstrip span { font: 500 .7rem var(--f-mono); color: var(--muted); }
+.viewer { position: fixed; inset: 0; z-index: 950; background: #0c0f0b; color: #f1f4ec; display: flex; flex-direction: column; padding: env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px); }
+.v-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.v-head .t { flex: 1; min-width: 0; }
+.v-head .t b { display: block; font: 400 1.2rem var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-head .t span { font: 500 .8rem var(--f-mono); opacity: .75; }
+.viewer button { background: transparent; color: inherit; border: 1px solid rgba(255,255,255,.35); border-radius: 10px; padding: 8px 12px; }
+.v-img { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; touch-action: pan-y; }
+.v-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.v-img .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; border: 0; background: rgba(0,0,0,.35); font-size: 1.6rem; padding: 0; }
+.v-img .nav.prev { left: 6px; } .v-img .nav.next { right: 6px; }
+.v-foot { padding: 10px 12px 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.v-foot label { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; font-size: .85rem; }
+.v-foot input { background: #1c211a; color: #f1f4ec; border: 1px solid rgba(255,255,255,.3); border-radius: 9px; padding: 7px 9px; color-scheme: dark; }
+.v-foot .danger { color: #ff9c88; border-color: rgba(255,156,136,.5); }
+.v-confirm { width: 100%; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .actions .primary { flex: 1; box-shadow: none; padding: 12px; }
 
@@ -317,13 +338,16 @@ button { cursor: pointer; }
       </div>
     </div>
     <div class="box full">
-      <div class="row between"><strong>Photo</strong><span class="small" id="photo-status"></span></div>
-      <img class="photo-prev" id="photo-prev" alt="Photo de la plante" hidden>
+      <div class="row between"><strong>Journal photo</strong><span class="small" id="photo-status"></span></div>
+      <div class="photo-main" id="photo-main" hidden><img class="photo-prev" id="photo-prev" alt="Dernière photo de la plante"><span class="pdate" id="photo-date"></span></div>
+      <div class="pstrip" id="photo-strip" hidden></div>
       <div class="row">
-        <input id="f-photo" type="file" accept="image/*" hidden>
-        <button class="ghost" id="btn-photo">Prendre / choisir une photo</button>
-        <button class="ghost danger" id="btn-photo-rm" hidden>Retirer</button>
+        <input id="f-photo" type="file" accept="image/*" capture="environment" hidden>
+        <input id="f-photos" type="file" accept="image/*" multiple hidden>
+        <button class="ghost" id="btn-photo">Prendre une photo</button>
+        <button class="ghost" id="btn-photo-gal">Depuis la galerie</button>
       </div>
+      <div class="small" id="photo-hint">Chaque photo garde sa date : on suit l’évolution de la plante au fil des saisons.</div>
     </div>
     <div class="box full">
       <div class="row between"><strong>Emplacement</strong><span class="small" id="pos-status"></span></div>
@@ -372,8 +396,9 @@ button { cursor: pointer; }
   <div class="form">
     <div class="box full">
       <strong>Sauvegarde</strong>
-      <div class="small">Le carnet est enregistré dans ce téléphone. Exportez une sauvegarde de temps en temps (photos comprises) et gardez-la ailleurs (Drive, mail).</div>
-      <div class="row"><button class="ghost" id="btn-export">Exporter la sauvegarde</button><button class="ghost" id="btn-csv">Exporter en tableur</button></div>
+      <div class="small">Le carnet est enregistré dans ce téléphone. Exportez une sauvegarde complète de temps en temps et gardez-la ailleurs (Drive, mail). La version légère, sans photos, sert à partager ou à faire vérifier le carnet : en la réimportant, les photos du téléphone restent en place.</div>
+      <div class="row"><button class="ghost" id="btn-export">Sauvegarde complète (avec photos)</button><button class="ghost" id="btn-export-light">Version légère (sans photos)</button></div>
+      <div class="row"><button class="ghost" id="btn-csv">Exporter en tableur</button></div>
       <div class="row"><input id="f-import" type="file" accept=".json,application/json" hidden><button class="ghost" id="btn-import">Importer une sauvegarde</button></div>
       <div class="small" id="backup-status"></div>
     </div>
@@ -550,6 +575,16 @@ button { cursor: pointer; }
 
 <datalist id="dl-plantes"></datalist>
 
+<div class="viewer" id="viewer" hidden role="dialog" aria-label="Journal photo">
+  <div class="v-head"><div class="t"><b id="v-name"></b><span id="v-count"></span></div><button id="v-close">Fermer</button></div>
+  <div class="v-img" id="v-img"><img id="v-pic" alt=""><button class="nav prev" id="v-prev" aria-label="Photo plus récente">‹</button><button class="nav next" id="v-next" aria-label="Photo plus ancienne">›</button></div>
+  <div class="v-foot">
+    <label>Prise le <input type="date" id="v-date"></label>
+    <button class="danger" id="v-del">Supprimer</button>
+    <div class="v-confirm" id="v-confirm" hidden><span>Supprimer cette photo ?</span><button class="danger" id="v-del-yes">Oui</button><button id="v-del-no">Non</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script src="leaflet.js"></script>
@@ -644,8 +679,48 @@ const photoUrls = new Map();
 async function photoUrl(id) {
   if (!id) return null;
   if (photoUrls.has(id)) return photoUrls.get(id);
-  const b = await idb.getPhoto(id); if (!b) return null;
+  const b = await idb.getPhoto(id); if (!(b instanceof Blob)) return null;
   const u = URL.createObjectURL(b); photoUrls.set(id, u); return u;
+}
+/* Journal photo : p.photos = [{ id, date }] du plus récent au plus ancien ; p.photoId = la plus récente (compatibilité) */
+const photoIdDate = id => { const t = parseInt(String(id || '').replace(/^ph/, '').slice(0, 8), 36); return t > 1.4e12 && t < 4e12 ? new Date(t).toISOString().slice(0, 10) : null; };
+function sortPhotos(list) { return list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || String(b.id).localeCompare(String(a.id))); }
+function normPhotos(p) {
+  if (!p) return p;
+  let list = Array.isArray(p.photos) ? p.photos.filter(x => x && x.id) : [];
+  // ancienne fiche (une seule photo) : on la reprend comme première photo du journal
+  if (!Array.isArray(p.photos) && p.photoId) list.push({ id: p.photoId, date: photoIdDate(p.photoId) || (p.createdAt || '').slice(0, 10) || today() });
+  const seen = new Set(); list = list.filter(x => !seen.has(x.id) && seen.add(x.id));
+  p.photos = sortPhotos(list);
+  if (p.photos.length) p.photoId = p.photos[0].id; else { delete p.photoId; delete p.photos; }
+  return p;
+}
+// date de prise de vue lue dans la photo (JPEG) ; sinon date du fichier
+async function photoTakenDate(file) {
+  try {
+    const buf = await file.slice(0, 256 * 1024).arrayBuffer(), v = new DataView(buf);
+    if (v.getUint16(0) === 0xFFD8) {
+      let o = 2;
+      while (o + 4 < v.byteLength) {
+        const mk = v.getUint16(o), len = v.getUint16(o + 2);
+        if (mk === 0xFFE1 && v.getUint32(o + 4) === 0x45786966) {
+          const t = o + 10, le = v.getUint16(t) === 0x4949, u16 = x => v.getUint16(x, le), u32 = x => v.getUint32(x, le);
+          const str = (x, n) => { let r = ''; for (let i = 0; i < n; i++) { const c = v.getUint8(x + i); if (!c) break; r += String.fromCharCode(c); } return r; };
+          const scan = (ifd, want) => { const n = u16(t + ifd), out = {}; for (let i = 0; i < n; i++) { const e = t + ifd + 2 + i * 12, tag = u16(e); if (want.includes(tag)) out[tag] = tag === 0x8769 ? u32(e + 8) : str(t + u32(e + 8), 19); } return out; };
+          const i0 = scan(u32(t + 4), [0x8769, 0x0132]);
+          const ex = i0[0x8769] ? scan(i0[0x8769], [0x9003, 0x9004]) : {};
+          const raw = ex[0x9003] || ex[0x9004] || i0[0x0132];
+          const m = raw && raw.match(/^(\d{4}):(\d{2}):(\d{2})/);
+          if (m && +m[1] > 1990) return `${m[1]}-${m[2]}-${m[3]}`;
+          break;
+        }
+        if (mk === 0xFFDA) break;
+        o += 2 + len;
+      }
+    }
+  } catch (e) {}
+  if (file.lastModified) { const d = new Date(file.lastModified); if (d.getTime() <= Date.now() + 864e5) return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
+  return today();
 }
 
 /* ===== State ===== */
@@ -857,8 +932,7 @@ async function updateBits() {
   $('pos-status').textContent = p.lat == null ? 'pas encore placée' : p.acc ? `GPS ± ${p.acc < 10 ? p.acc.toFixed(1) : Math.round(p.acc)} m` : 'placée à la main';
   $('btn-goto').hidden = p.lat == null || !p.id;
   $('btn-move').hidden = !p.id; $('btn-regps').hidden = !!p.id && p.lat != null; $('btn-replace').hidden = !!p.id && p.lat != null;
-  const u = await photoUrl(p.photoId); $('photo-prev').hidden = !u; if (u) $('photo-prev').src = u;
-  $('btn-photo-rm').hidden = !p.photoId;
+  await renderPhotos();
 }
 function readForm() {
   Object.assign(draft, {
@@ -873,14 +947,16 @@ function readForm() {
   if (ll && (draft.lat == null || Math.abs(ll.lat - draft.lat) > 6e-7 || Math.abs(ll.lng - draft.lng) > 6e-7)) { draft.lat = ll.lat; draft.lng = ll.lng; draft.acc = null; }
   if (!ll) { draft.lat = null; draft.lng = null; draft.acc = null; }
 }
-function openPlant(p) { draft = JSON.parse(JSON.stringify(p)); fillPlantSheet(); openSheet('sheet-plant'); renderMarkers(); }
+function openPlant(p) { draft = normPhotos(JSON.parse(JSON.stringify(p))); fillPlantSheet(); openSheet('sheet-plant'); renderMarkers(); }
 async function savePlant() {
   readForm();
   if (!draft.nom) { $('f-nom').focus(); toast('Donnez-lui au moins un nom.'); return; }
   const isNew = !draft.id;
   if (isNew) draft.id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   draft.updatedAt = new Date().toISOString(); draft.createdAt = draft.createdAt || draft.updatedAt;
-  const rec = { ...draft }; delete rec._reopen;
+  const rec = normPhotos({ ...draft }); delete rec._reopen;
+  const before = !isNew && plants.find(x => x.id === rec.id);
+  if (before) { const keep = new Set((rec.photos || []).map(x => x.id)); for (const ph of (normPhotos({ ...before }).photos || [])) if (!keep.has(ph.id)) { await idb.delPhoto(ph.id).catch(() => {}); photoUrls.delete(ph.id); } }
   if (rec.zoneId && rec.zx != null) { const z = zones.find(x => x.id === rec.zoneId); if (z) { const g = toGeo(zoneFrame(z), rec.zx, rec.zy); rec.lat = g[0]; rec.lng = g[1]; rec.acc = null; } }
   for (const k of Object.keys(rec)) if (rec[k] === '' && !['nom'].includes(k)) delete rec[k];
   await idb.put(rec);
@@ -893,7 +969,7 @@ $('btn-close').onclick = () => { closeSheets(); draft = null; renderMarkers(); }
 $('btn-del').onclick = () => $('del-confirm').hidden = false;
 $('btn-del-no').onclick = () => $('del-confirm').hidden = true;
 $('btn-del-yes').onclick = async () => {
-  await idb.del(draft.id); if (draft.photoId) await idb.delPhoto(draft.photoId);
+  await idb.del(draft.id); const gone = normPhotos({ ...plants.find(x => x.id === draft.id) }); for (const ph of [...(gone.photos || []), ...(draft.photos || [])]) await idb.delPhoto(ph.id).catch(() => {});
   plants = plants.filter(p => p.id !== draft.id); draft = null; closeSheets(); renderAll(); toast('Fiche supprimée');
 };
 function syncOrigine() { const o = $('f-origine').value; $('date-lbl').textContent = o === 'spontanee' ? 'Repérée le (facultatif)' : o === 'anciens' ? 'Planté vers (facultatif)' : 'Planté le'; }
@@ -903,16 +979,74 @@ $('btn-regps').onclick = () => { readForm(); draft._reopen = true; startCapture(
 $('btn-replace').onclick = () => { readForm(); startPlace(r => { Object.assign(draft, { lat: r.lat, lng: r.lng, acc: null }); updateBits(); openSheet('sheet-plant'); }, draft.lat != null ? [draft.lat, draft.lng] : null); };
 $('btn-goto').onclick = () => { readForm(); const p = plants.find(x => x.id === draft.id); if (p) startFinder(p); };
 $('btn-photo').onclick = () => $('f-photo').click();
-$('btn-photo-rm').onclick = () => { draft.photoId = null; updateBits(); };
-$('f-photo').onchange = async e => {
-  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
-  $('photo-status').textContent = 'Enregistrement…';
-  try {
-    const blob = await shrink(file, 1600); const id = 'ph' + Date.now().toString(36);
-    await idb.putPhoto(id, blob); draft.photoId = id; $('photo-status').textContent = '';
-  } catch (err) { $('photo-status').textContent = 'Photo non enregistrée'; }
-  updateBits();
+$('btn-photo-gal').onclick = () => $('f-photos').click();
+async function addPhotos(files) {
+  files = [...files]; if (!files.length || !draft) return;
+  let ok = 0;
+  for (let i = 0; i < files.length; i++) {
+    $('photo-status').textContent = files.length > 1 ? `Enregistrement ${i + 1} / ${files.length}…` : 'Enregistrement…';
+    try {
+      const date = await photoTakenDate(files[i]);
+      const blob = await shrink(files[i], 1600), id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      await idb.putPhoto(id, blob);
+      draft.photos = draft.photos || []; draft.photos.push({ id, date }); ok++;
+    } catch (err) {}
+  }
+  normPhotos(draft);
+  $('photo-status').textContent = ok === files.length ? '' : `${files.length - ok} photo${files.length - ok > 1 ? 's' : ''} non enregistrée${files.length - ok > 1 ? 's' : ''}`;
+  await renderPhotos();
+  if (ok) toast(ok > 1 ? `${ok} photos ajoutées : touchez Enregistrer` : 'Photo ajoutée : touchez Enregistrer');
+}
+$('f-photo').onchange = e => { const f = [...e.target.files]; e.target.value = ''; addPhotos(f); };
+$('f-photos').onchange = e => { const f = [...e.target.files]; e.target.value = ''; addPhotos(f); };
+const fmtShort = d => d ? new Date(d + 'T12:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: '2-digit' }) : '';
+async function renderPhotos() {
+  const list = (draft && draft.photos) || [];
+  $('photo-main').hidden = !list.length;
+  if (list.length) { const u = await photoUrl(list[0].id); $('photo-prev').src = u || ''; $('photo-date').textContent = fmtDate(list[0].date) + (list.length > 1 ? ` · ${list.length} photos` : ''); }
+  $('photo-strip').hidden = list.length < 2;
+  if (list.length > 1) {
+    const urls = await Promise.all(list.map(x => photoUrl(x.id)));
+    $('photo-strip').innerHTML = list.map((x, i) => `<button type="button" data-ph="${i}" aria-label="Photo du ${esc(fmtDate(x.date))}"><img src="${urls[i] || ''}" alt="" loading="lazy"><span>${esc(fmtShort(x.date))}</span></button>`).join('');
+  } else $('photo-strip').innerHTML = '';
+  $('btn-photo-gal').textContent = list.length ? 'Ajouter depuis la galerie' : 'Depuis la galerie';
+  $('btn-photo').textContent = list.length ? 'Nouvelle photo' : 'Prendre une photo';
+}
+/* Visionneuse */
+let vIdx = 0;
+function openViewer(i) { if (!draft || !draft.photos || !draft.photos.length) return; vIdx = Math.max(0, Math.min(i, draft.photos.length - 1)); $('viewer').hidden = false; showViewer(); }
+async function showViewer() {
+  const list = draft && draft.photos; if (!list || !list.length) { closeViewer(); return; }
+  vIdx = Math.max(0, Math.min(vIdx, list.length - 1));
+  const x = list[vIdx];
+  $('v-pic').src = (await photoUrl(x.id)) || ''; $('v-pic').alt = `Photo du ${fmtDate(x.date)}`;
+  $('v-name').textContent = $('f-nom').value.trim() || draft.nom || 'Plante';
+  $('v-count').textContent = `${fmtDate(x.date)} · ${vIdx + 1} / ${list.length}${vIdx === 0 ? ' · la plus récente' : ''}`;
+  $('v-date').value = x.date || ''; $('v-date').max = today();
+  $('v-prev').hidden = vIdx === 0; $('v-next').hidden = vIdx >= list.length - 1;
+  $('v-confirm').hidden = true; $('v-del').hidden = false;
+}
+function closeViewer() { $('viewer').hidden = true; renderPhotos(); }
+$('photo-prev').onclick = () => openViewer(0);
+$('photo-strip').onclick = e => { const b = e.target.closest('[data-ph]'); if (b) openViewer(+b.dataset.ph); };
+$('v-close').onclick = closeViewer;
+$('v-prev').onclick = () => { vIdx--; showViewer(); };
+$('v-next').onclick = () => { vIdx++; showViewer(); };
+$('v-date').onchange = () => {
+  const d = $('v-date').value, x = draft.photos[vIdx]; if (!d || !x) return;
+  x.date = d; normPhotos(draft); vIdx = draft.photos.findIndex(y => y.id === x.id); showViewer(); toast('Date changée : touchez Enregistrer dans la fiche');
 };
+$('v-del').onclick = () => { $('v-confirm').hidden = false; $('v-del').hidden = true; };
+$('v-del-no').onclick = () => { $('v-confirm').hidden = true; $('v-del').hidden = false; };
+$('v-del-yes').onclick = () => {
+  draft.photos.splice(vIdx, 1); const left = draft.photos.length; normPhotos(draft);
+  if (!left) { closeViewer(); } else showViewer();
+  toast('Photo retirée : touchez Enregistrer pour confirmer');
+};
+(() => { let x0 = null; const el = $('v-img');
+  el.addEventListener('touchstart', e => { x0 = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive: true });
+  el.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) < 50) return; const n = vIdx + (dx < 0 ? 1 : -1); if (n >= 0 && n < draft.photos.length) { vIdx = n; showViewer(); } });
+})();
 async function shrink(file, max) {
   try {
     const bmp = await createImageBitmap(file); const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
@@ -1098,15 +1232,21 @@ async function downloadFile(name, blob) {
   if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: name }); return true; } catch (e) { if (e.name === 'AbortError') return false; } }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); return true;
 }
-$('btn-export').onclick = async () => {
+async function exportJson(withPhotos) {
   $('backup-status').textContent = 'Préparation…';
+  plants.forEach(normPhotos);
   const photos = {};
-  for (const p of plants) if (p.photoId) { const b = await idb.getPhoto(p.photoId); if (b) photos[p.photoId] = await blobToB64(b); }
-  const data = JSON.stringify({ app: 'carnet-joutade', version: 1, exporte: new Date().toISOString(), plantes: plants, zones, meta, photos });
-  const ok = await downloadFile(`${fileSlug(carnetName())}-${new Date().toISOString().slice(0, 10)}.json`, new Blob([data], { type: 'application/json' }));
-  if (ok) { try { localStorage.setItem('lastBackup', new Date().toISOString()); } catch (e) {} }
-  $('backup-status').textContent = ok ? lastBackupText() : 'Export annulé.';
-};
+  if (withPhotos) {
+    const ids = [...new Set(plants.flatMap(p => (p.photos || []).map(x => x.id)))]; let i = 0;
+    for (const id of ids) { $('backup-status').textContent = `Préparation des photos : ${++i} / ${ids.length}`; const b = await idb.getPhoto(id); if (b instanceof Blob) photos[id] = await blobToB64(b); }
+  }
+  const data = JSON.stringify({ app: 'carnet-joutade', version: 2, exporte: new Date().toISOString(), sansPhotos: !withPhotos, plantes: plants, zones, meta, photos });
+  const ok = await downloadFile(`${fileSlug(carnetName())}-${new Date().toISOString().slice(0, 10)}${withPhotos ? '' : '-sans-photos'}.json`, new Blob([data], { type: 'application/json' }));
+  if (ok && withPhotos) { try { localStorage.setItem('lastBackup', new Date().toISOString()); } catch (e) {} }
+  $('backup-status').textContent = ok ? (withPhotos ? lastBackupText() : 'Version légère exportée (sans photos).') : 'Export annulé.';
+}
+$('btn-export').onclick = () => exportJson(true);
+$('btn-export-light').onclick = () => exportJson(false);
 $('btn-csv').onclick = () => {
   const cols = [['nom', 'Nom'], ['latin', 'Nom latin'], ['cat', 'Catégorie'], ['variete', 'Variété'], ['portegreffe', 'Porte-greffe'], ['origine', 'Origine'], ['date', 'Planté / repéré le'], ['provenance', 'Provenance'], ['etat', 'État'], ['famille', 'Famille'], ['zone', 'Emplacement'], ['dateFin', 'Terminé le'], ['qte', 'Quantité'], ['lat', 'Latitude'], ['lng', 'Longitude'], ['acc', 'Précision (m)'], ['notes', 'Notes']];
   const cell = v => { v = v == null ? '' : String(v); return /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
@@ -1119,11 +1259,20 @@ $('f-import').onchange = async e => {
   try {
     const data = JSON.parse(await file.text()); const list = data.plantes || [];
     let n = 0;
-    for (const [id, b64] of Object.entries(data.photos || {})) { const b = await (await fetch(b64)).blob(); await idb.putPhoto(id, b); }
-    for (const p of list) { if (!p.id || !p.nom || p.exemple) continue; await idb.put(p); n++; }
+    for (const [id, b64] of Object.entries(data.photos || {})) { const b = await (await fetch(b64)).blob(); await idb.putPhoto(id, b); photoUrls.delete(id); }
+    const local = new Map((await idb.all()).map(p => [p.id, normPhotos(p)]));
+    for (const p of list) {
+      if (!p.id || !p.nom || p.exemple) continue;
+      // les photos déjà dans le téléphone sont toujours gardées ; celles du fichier s'ajoutent si on les a
+      const mine = (local.get(p.id) || {}).photos || [], theirs = normPhotos({ ...p }).photos || [];
+      const merged = [...mine];
+      for (const x of theirs) if (!merged.some(y => y.id === x.id) && (await idb.getPhoto(x.id)) instanceof Blob) merged.push(x);
+      p.photos = merged; delete p.photoId; normPhotos(p);
+      await idb.put(p); n++;
+    }
     for (const z of (data.zones || [])) { if (z.id && z.pts) await idb.putZone(z); }
     for (const [k, v] of Object.entries(data.meta || {})) { await idb.setMeta(k, v); meta[k] = v; }
-    plants = await idb.all(); zones = await idb.zones(); applyTerrain(true); renderAll();
+    plants = (await idb.all()).map(normPhotos); zones = await idb.zones(); applyTerrain(true); renderAll();
     $('backup-status').textContent = `${n} fiche${n > 1 ? 's' : ''} importée${n > 1 ? 's' : ''}.`;
   } catch (err) { $('backup-status').textContent = 'Ce fichier n’est pas une sauvegarde du carnet.'; }
 };
@@ -2158,6 +2307,7 @@ $('btn-dup').onclick = () => {
 /* ===== Bouton Retour du téléphone : ferme ce qui est ouvert au lieu de quitter ===== */
 const vis = id => !$(id).hidden;
 function backAction() {
+  if (vis('viewer')) { $('v-close').click(); return true; }
   if (vis('sheet-capture')) { $('cap-cancel').click(); return true; }
   const sheets = [['sheet-move', 'mv-cancel'], ['sheet-pick', 'pk-cancel'], ['sheet-row', 'r-cancel'], ['sheet-repiq', 'rq-cancel'], ['sheet-ics', 'ics-close'], ['sheet-terrain', 'tr-later'], ['sheet-plant', 'btn-close'], ['sheet-zone', 'z-close'], ['sheet-list', 'btn-list-close'], ['sheet-menu', 'btn-menu-close']];
   for (const [sh, btn] of sheets) if (vis(sh)) { $(btn).click(); return true; }
@@ -2184,7 +2334,7 @@ CATS.forEach(c => $('f-cat').insertAdjacentHTML('beforeend', `<option value="${c
 ETATS.forEach(e => $('f-etat').insertAdjacentHTML('beforeend', `<option value="${e.id}">${e.label}</option>`));
 function renderAll() { updCalBadge(); refreshDatalist(); renderStats(); renderZones(); renderMarkers(); if (pvZone) renderPlan(); if (!$('sheet-list').hidden) renderList(); if (!$('searchview').hidden) renderSearch(); }
 (async () => {
-  try { plants = await idb.all(); zones = await idb.zones(); meta = await idb.metaAll(); } catch (e) { toast('Stockage indisponible : le carnet ne pourra pas enregistrer.'); }
+  try { plants = (await idb.all()).map(normPhotos); zones = await idb.zones(); meta = await idb.metaAll(); } catch (e) { toast('Stockage indisponible : le carnet ne pourra pas enregistrer.'); }
   applyTerrain(true);
   renderAll();
   if (!meta.terrain) openTerrain();
